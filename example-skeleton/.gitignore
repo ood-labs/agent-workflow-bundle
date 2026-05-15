@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+target/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Reference repos cloned for research (not for distribution)
+reference/
+
+# Local environment
+.env
+*.local
