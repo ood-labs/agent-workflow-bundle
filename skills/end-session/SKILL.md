@@ -69,9 +69,17 @@ If no `docs/state.md` exists, skip silently. (It's optional.)
 
 ## Phase 5: Lessons check
 
-Ask the user once: *"Did we hit any sneaky bugs or gotchas that took non-trivial effort? If yes, briefly describe so I can append to docs/lessons.md."*
+**Never ask the user.** Auto-synthesize from this session's actual problems.
 
-If yes, append a new entry at the **top** of `docs/lessons.md`:
+Scan the session for gotchas that took non-trivial effort to resolve. Signals:
+- A bug, error, or failure that required more than one attempt to fix
+- A surprising behavior, footgun, or non-obvious cause documented in the devlog's "Issues Encountered" section
+- A workaround applied because the obvious approach didn't work
+- Anything you'd want a future session to know before re-hitting the same wall
+
+For each qualifying gotcha, append a new entry at the **top** of `docs/lessons.md`. Write the entry yourself from the session evidence — symptoms from what was observed, cause from the actual root cause found, fix from the actual change that worked. Cite `file:line` where relevant.
+
+If nothing in the session qualifies, skip silently. Don't pad lessons.md with trivia.
 
 ```markdown
 ## YYYY-MM-DD — <Short title>
@@ -89,7 +97,7 @@ If yes, append a new entry at the **top** of `docs/lessons.md`:
 
 Update `lessons.md` frontmatter `updated:` to today.
 
-If `docs/lessons.md` doesn't exist, create it from the bundle's `lessons-template.md` if the user wants one.
+If `docs/lessons.md` doesn't exist but qualifying gotchas were found, create it from the bundle's `lessons-template.md` and append the entries. Don't ask.
 
 Skip silently if nothing memorable happened.
 
@@ -194,5 +202,5 @@ Tomorrow's lead-in (from state.md current focus or devlog Next Steps):
 - Don't update Current Status unless a phase actually transitioned.
 - Don't auto-fix schema audit findings. Surface, let user decide.
 - Don't bump frontmatter `last_verified:` on knowledge files unless you actually verified.
-- Don't append a non-trivial lessons entry without the user's text. Their words, not your synthesis.
+- Don't ask the user for lessons content. Phase 5 auto-synthesizes from the session — if there's no real gotcha, skip the phase silently.
 - Don't bundle the lessons append into the main commit. If lessons.md was touched, it gets folded into the same commit (single session = single commit).
