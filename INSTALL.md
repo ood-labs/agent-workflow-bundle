@@ -47,6 +47,103 @@ The scripts do not silently overwrite existing skills or playbooks. Use `-Overwr
 5. Copy playbooks. Each file in `playbooks/`, including `INDEX.md`, copies to `<root>/playbooks/`. If `INDEX.md` already exists, merge manually instead of overwriting without review.
 6. Confirm the installed skills, playbooks, and target paths.
 
+## Updating an installed bundle
+
+Updates use the same installer with the `-Overwrite` / `OVERWRITE=1` flag. The flag is destructive — it deletes each installed skill subtree before copying the new one — so follow the steps in order rather than running the installer directly.
+
+### 1. Refresh the bundle source
+
+If the bundle is a git clone:
+
+```powershell
+cd <bundle-path>
+git fetch origin
+git status            # confirm nothing local you'd lose
+git pull --ff-only
+```
+
+If you grabbed the bundle as a download, replace your local copy with the new release tarball/zip before continuing.
+
+### 2. Preview the changes (dry-run)
+
+Run the installer with both `-DryRun` and `-Overwrite`. This lists every skill subtree and playbook file that would be replaced, without writing anything:
+
+PowerShell:
+
+```powershell
+.\scripts\install.ps1 -Target all -DryRun -Overwrite
+```
+
+Bash:
+
+```bash
+DRY_RUN=1 OVERWRITE=1 ./scripts/install.sh all
+```
+
+Read the output. Anything you don't recognize as an intended upstream change is worth investigating before the real run.
+
+### 3. Back up customizations you want to keep
+
+`-Overwrite` blows away the previous skill subtree wholesale. If you've made local edits inside `<root>/skills/<skill-name>/` or to `<root>/playbooks/INDEX.md`, copy them out first. The clean workflow is to fold those customizations back into the bundle source so they survive the next update — overriding in the install location is a treadmill.
+
+### 4. Apply the update
+
+PowerShell:
+
+```powershell
+.\scripts\install.ps1 -Target all -Overwrite
+```
+
+Bash:
+
+```bash
+OVERWRITE=1 ./scripts/install.sh all
+```
+
+Target a narrower scope (`agents`, `claude`, `codex`) if you only want to refresh one install root.
+
+### 5. Prune stale skills (manual)
+
+The installer copies what's in the bundle; it does not delete skills that have been removed upstream. After the update, compare `<root>/skills/` against `<bundle>/skills/` and delete any directories that are no longer in the bundle. Same for `<root>/playbooks/`.
+
+PowerShell snippet:
+
+```powershell
+$bundleSkills  = Get-ChildItem "<bundle>\skills" -Directory | Select-Object -ExpandProperty Name
+$installed     = Get-ChildItem "$env:USERPROFILE\.claude\skills" -Directory | Select-Object -ExpandProperty Name
+$installed | Where-Object { $_ -notin $bundleSkills }
+```
+
+Bash snippet:
+
+```bash
+diff <(ls <bundle>/skills) <(ls ~/.claude/skills)
+```
+
+### 6. Restart the agent
+
+Skills are read at agent startup. Restart Claude Code / Codex / the agent runtime so the refreshed skills load.
+
+### 7. Verify
+
+Spot-check a skill you know changed in this update — open `<root>/skills/<skill-name>/SKILL.md` and confirm the change is present. If you maintain a project-level mirror under `<project>/.claude/skills/` or `<project>/.codex/skills/`, those copies are independent and update separately.
+
+### What the installer does NOT touch
+
+- `<root>/settings.json` — never modified by the installer.
+- `<root>/CLAUDE.md`, `<root>/AGENTS.md`, or other personal config at the install root.
+- `<root>/projects/` — your conversation/memory state is untouched.
+- Anything outside `<root>/skills/` and `<root>/playbooks/`.
+
+### Recovery from a bad update
+
+If an update breaks things, the safe restore path is:
+
+1. `git checkout <previous-tag-or-commit>` in the bundle source (or unzip the previous release).
+2. Re-run the installer with `-Overwrite` to roll back the install locations to that version.
+
+There is no built-in version history at the install location — the installer's only state is whatever currently sits in `<root>/skills/` and `<root>/playbooks/`.
+
 ## Runtime path resolution
 
 Skills that read the global playbook library should resolve paths in this order:
