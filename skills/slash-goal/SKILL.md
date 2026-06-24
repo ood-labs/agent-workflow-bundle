@@ -1,21 +1,21 @@
 ---
 name: slash-goal
-description: Generate a completion-condition string for the "slash goal" command that drives a formalized phase to done — every sub-phase, the devlog, and the start/end-session steps — while keeping the human in the loop. Scopes each goal to a single human-gate span, carves out destructive/sign-off steps as stops, and returns the goal inline in chat. Run after /formalize-plan (and optional /plan-audit), before you start work.
-allowed-tools: Read, Glob, Grep, Bash(git log:*), Bash(git status:*)
+description: Author a completion-condition string for the "slash goal" command that drives as far as the user wants — often several phases or a whole overnight run — and stops only at genuinely irreversible forks. Sorts every gate into self-serve-and-continue, conditional-proceed, or hard-stop, elicits pre-authorizations up front so the loop doesn't stall at 2am, and returns the goal inline in chat. Run after /formalize-plan (and optional /plan-audit), before you start work.
+allowed-tools: Read, Glob, Grep, AskUserQuestion, Bash(git log:*), Bash(git status:*)
 user-invocable: true
 ---
 
 # Slash Goal Skill
 
-Turn a freshly formalized phase plan into one **goal condition** you can hand to the `"slash goal"` command. The condition is written so the command's autonomous loop carries the session through a phase — every sub-phase, the devlog, and the start/end-session bookkeeping — and stops only when the work is genuinely done and committed, **or** the moment it reaches a step a human must own.
+Author one **goal condition** for the `"slash goal"` command that drives the session as far as the user asks — a sub-phase, a phase, several phases, or a whole overnight run — and stops only when the work is genuinely done *or* it hits a fork that is genuinely irreversible or unsettled.
 
-Because the loop is autonomous, the skill's real job is to draw the line between what the loop may do alone and what it must stop for. It scans the plan for destructive/irreversible actions and human gates (sign-off, approval, ratification, review), keeps those on the boundaries, and scopes each goal to a single gate-to-gate span — usually one phase, generated one at a time. A goal must never run a destructive step or self-clear a gate.
+The whole craft of this skill is **gate handling**. An autonomous loop that stops at every sign-off, approval, and decision is useless overnight — it stalls at the first aesthetic gate and the user wakes to nothing. So the skill keeps the human in the loop the *right* way: at authoring time, not at runtime. It finds every gate across the span, sorts each into one of three tiers, and pre-clears as many as it safely can so the loop keeps moving and only stops for decisions that actually need a person and actually can't be undone.
 
-This skill **writes the goal string and returns it to you inline in the chat**. It does not run the command itself (`"slash goal"` is user-triggered), and it never writes the goal to a file — you read it from the conversation and paste it.
+This skill **returns the goal inline in the chat** (never writes it to a file) and does not run the command itself — `"slash goal"` is user-triggered.
 
 ## About the "slash goal" command
 
-`"slash goal"` (written here with the word *slash* and no `/` character on purpose) is a built-in Claude Code command — requires Claude Code **v2.1.139 or later** — that sets a **completion condition** and then loops the agent's work autonomously until that condition is met. After every turn a small fast evaluator model checks the condition and returns a short reason for why it is or isn't satisfied; that reason steers the next turn. The goal persists across the session (and restores on `--resume`/`--continue`) until the condition is met, you run `"slash goal"` clear, or the session ends.
+`"slash goal"` (written here with the word *slash* and no `/` character on purpose) is a built-in Claude Code command — requires Claude Code **v2.1.139 or later** — that sets a **completion condition** and then loops the agent's work autonomously until that condition is met. After every turn a small fast evaluator model checks the condition and returns a short reason for why it is or isn't satisfied; that reason steers the next turn. The goal persists across the session (and restores on `--resume`/`--continue`) until the condition is met, you run `"slash goal"` clear, or the session ends. Setting a new goal replaces the active one — no need to clear first.
 
 Usage shape (paste, no leading `/` shown here for clarity):
 
@@ -23,107 +23,108 @@ Usage shape (paste, no leading `/` shown here for clarity):
 - `"slash goal"` — view current goal status, turns, tokens, evaluator feedback
 - `"slash goal" clear` — drop the active goal before completion
 
-**The one constraint that shapes everything below:** the evaluator judges the condition **only against what the agent has surfaced in the conversation transcript.** It does not independently run commands or read files. So the condition must be written as things the agent's own output can *demonstrate* — and the generated goal must therefore instruct the agent to surface its evidence (paste test output, the commit hash, the devlog path, the `approval:` line) before the condition can read as met.
+**The one constraint that shapes everything below:** the evaluator judges the condition **only against what the agent has surfaced in the conversation transcript.** It does not independently run commands or read files. So the condition must be written as things the agent's own output can *demonstrate* — and the generated goal must instruct the agent to surface its evidence (paste test output, MCP readbacks, screenshots, the commit hash, the devlog frontmatter) before the condition can read as met.
 
 ## When to use
 
-- Right after `/formalize-plan` (and optional `/plan-audit`), before `/start-session`, when you want the phase to run end-to-end under the `"slash goal"` loop instead of driving each sub-phase by hand.
-- The phase has a written plan with bounded sub-phases and pass criteria. If the plan is vague, stop and tighten it first — a loose goal makes the evaluator either never stop or stop early.
-- Best for multi-sub-phase phases with a verifiable end state. A single 1-hour task doesn't need this.
+- After `/formalize-plan` (and optional `/plan-audit`), before `/start-session`, when you want one or more phases to run under the `"slash goal"` loop instead of driving each sub-phase by hand.
+- Especially for **long autonomous runs** ("get us far tonight," "drive the rest of the project") where stalling at a soft gate would waste the whole window.
+- The plan has bounded sub-phases with pass criteria. If it's vague, tighten it first — a loose goal makes the evaluator either never stop or stop early.
+
+## The gate tiers — the core idea
+
+Before composing anything, every gate in the span gets sorted. A **gate** is any point the plan or the project convention would normally pause for a human. There are three kinds, and only one of them is an actual stop:
+
+1. **Self-serve gate → run it yourself, log it, CONTINUE.** Anything the plan already frames as "automated check first, human only on mismatch" — aesthetic/visual sign-off via `vision_eval`, pixel cross-checks, panel-look reviews — *plus* the project's default per-sub-phase approval cadence. The goal converts these to: run the check, record the verdict + screenshot/evidence in the devlog, leave `approval: pending` for the human's morning review, and keep going. **Never a stop.**
+2. **Conditional-proceed gate → pre-authorize with a testable condition.** A decision the loop would otherwise stop for, but which can be settled by a rule the loop can evaluate from its own output: "accept dependency D if `cargo deny` passes and its license is MIT/Apache — paste the output; else STOP"; "extending the already-vendored patch is fine (precedent D32) — do it and flag it; a core/upstream fork is not — STOP"; "you MAY draft spec amendments into `docs/spec-amendments-queued.md`, but never edit the spec itself." The skill **elicits the user's call on each of these up front** (or proposes a sensible default for one-line confirmation) and bakes the conditional-proceed into the goal text.
+3. **Hard stop → STOP and report, with evidence.** Reserved for the genuinely irreversible or genuinely unsettled: git history rewrite (`git reset`, `git tag`, force-push), editing the spec contract, a core/upstream fork (a real maintenance commitment), a dependency that fails its pre-authorized condition, verification tools staying down *after* the semantic-only fallback was tried, a required cross-platform/parity leg being unreachable, the same check failing more than ~3 times, an irreversible action not pre-authorized, or any decision the plan does not settle. These are the **only** true stops.
+
+The principle: **a stop is a last resort.** Every gate that can be self-served or conditionally pre-authorized must be, so an overnight run reaches as far as the plan safely allows instead of halting at the first sign-off. The human's judgment is spent at authoring time (tiers 1 and 2) so it doesn't have to be spent at 2am.
 
 ## Workflow
 
-### Step 1: Identify the plan
+### Step 1: Scope the reach
 
-If the user gives an argument, treat it as a phase doc path or phase number. Otherwise find the most recently modified file in `docs/phases/` and confirm it's the phase to drive.
+Match the user's ask, don't default to a single gate-span. If they want one phase, scope to one phase. If they say "get us far tonight" or "drive the rest of the project," span **all** the phases they named — a multi-phase or whole-remaining-project goal is first-class here, not a deviation. Identify the phase doc(s) the span covers (argument, or the active/next phases in `docs/implementation-plan.md`).
 
-### Step 2: Read context
+### Step 2: Read context across the whole span
 
-Read enough to know exactly what "done" means and what proof the agent will be able to surface:
+Read enough to know what "done" means, what proof the agent can surface, and where every gate sits:
 
-1. The phase doc — sub-phase list, deliverables table, pass / definition-of-done criteria, verification plan.
-2. `docs/implementation-plan.md` Phase Overview — where this phase sits, what comes before/after.
-3. `docs/state.md` and the `AGENTS.md` / `CLAUDE.md` Current Status — current focus and any blockers.
-4. The project's own session contract so the goal speaks its language: how devlogs are written and where (`docs/devlogs/`), the frontmatter contract (`docs/SCHEMA.md` if present — especially the `approval:` field), and the test / build commands the verification plan names.
-5. **Every destructive step and every human gate the plan names.** Read for: irreversible actions (`git reset`/history rewrite, force-push, tag moves, dropping data or schema, deleting files, anything the user confirmed once and wouldn't want re-run) and human-judgment gates (aesthetic/taste sign-off, approval, ratification, design decision, patch/security review). Note exactly where each falls in the sub-phase order — these set the goal's boundaries in Step 4.
+1. Each phase doc in the span — sub-slice order (respect any non-obvious ordering, e.g. 4.1d before 4.1c), pass criteria, verification plan.
+2. `docs/implementation-plan.md` — where the span sits and what's already done.
+3. `docs/state.md` and `AGENTS.md` / `CLAUDE.md` Current Status — focus, blockers.
+4. The project's session contract and **testability contract**: devlog location + frontmatter, the real `cargo`/test commands, and how features are proven (e.g. semantic MCP — write/invoke then read back `/sentinel/graph`, `/sentinel/ui`, `capture_frame` — with a documented semantic-only fallback when visual tools drop).
+5. **Every gate and destructive step in the span**, with where each falls in the order.
 
-### Step 3: Extract the verifiable end-state
+### Step 3: Sort every gate into a tier
 
-From the reading, pull out, as a concrete list:
+Walk the gates from Step 2 and classify each as **self-serve**, **conditional-proceed**, or **hard stop** per the definitions above. This is the analytic heart of the skill — get it right and the goal drives far without ever doing something unrecoverable.
 
-- **Sub-phases in order** (e.g. 4a → 4b → 4c) and the pass criterion for each.
-- **The definition of done for this goal's span** — the single measurable state that means the bounded work is finished (its sub-phase criteria met, suite green, build exits 0, etc.).
-- **The lifecycle steps the workflow requires around the code work** — orient at the start the way `/start-session` does (read last commit, devlog `approval`, state.md), write a devlog per the contract, and close out the way `/end-session` does (devlog `status: complete`, then `approval: pending` if a human gate still stands or `approval: approved` only when the human's sign-off is the trailing act — default to `pending` and let the human approve, state.md updated, committed).
-- **Constraints that must hold** — files/areas that must NOT change, the frontmatter contract, "no unrelated files staged."
+### Step 4: Elicit pre-authorizations
 
-### Step 4: Scope the goal — one human-gate span at a time
+For the conditional-proceed gates (and any soft gate where the project default is "wait for approval"), surface a short checklist to the user and get their call — propose a sensible default for each so they can clear it in one line. Use `AskUserQuestion` if it helps, or just present the list. Typical asks:
 
-A goal drives an *autonomous* loop, so anything a human must own has to fall on a boundary, never inside the loop. Using the gates and destructive steps found in Step 2, set the goal's scope:
+- "Self-serve all aesthetic/visual checks (vision_eval + screenshot logged, `approval: pending`) and continue? (recommended: yes)"
+- "Commit each sub-slice `approval: pending` and roll on without per-sub-phase approval? (recommended: yes for overnight)"
+- "Accept a new dependency automatically if `cargo deny` passes + license MIT/Apache, else stop? (recommended: yes)"
+- "Extend an already-vendored patch freely but stop before any core/upstream fork? (recommended: yes)"
+- "Draft spec amendments to a queue file but never touch the spec? (recommended: yes)"
 
-- **Destructive / irreversible steps become human prerequisites — carved OUT of the goal.** The condition verifies the resulting state on turn 1 (e.g. "tree is at `<commit>`, file X present, file Y absent") and STOPS reporting "do `<step>` first" if it isn't met. The loop never performs the action itself.
-- **Human gates become stop points.** The goal works up to the gate, surfaces the exact evidence the person needs to judge (screenshot, diff, readback, vision-eval), and STOPS without crossing it. The loop never self-approves, self-clears, or sets `approval: approved` to get past a gate.
-
-These boundaries set the **unit of work**. Do **not** write one goal spanning a multi-phase arc when gates sit between the phases — bound each goal to a single gate-to-gate span (usually one phase, sometimes a shorter sub-phase run). Generate **one goal at a time**; the next is generated after the human clears the prior gate, so each gate stays a clean stop. Only when several phases carry no gate and no destructive step is a wider goal acceptable — and then say so explicitly rather than defaulting to it.
-
-If the plan is missing, vague, or the gates are ambiguous, surface that and settle scope with the user before emitting a goal.
+If the user already pre-authorized these in conversation, use those answers — don't re-ask. Anything they decline becomes a hard stop instead.
 
 ### Step 5: Compose the goal condition
 
-Write **one** condition string (the command caps it at ~4,000 characters) with these parts, phrased throughout as transcript-observable outcomes:
+Write **one** condition string (capped ~4,000 chars), phrased as transcript-observable outcomes, with these parts:
 
-1. **The measurable end state**, first and unambiguous. e.g. *"Phase 4.0 (sub-phases 4.0.2–4.0.4) is complete: every sub-phase pass criterion in `docs/phases/phase-4-*.md` is met and PROVEN, devlog written, work committed; then STOP."*
-2. **The hard carve-outs** — list, up front, what the loop must never do: run each destructive prerequisite autonomously (verify its end-state on turn 1 and STOP if unmet instead), cross or self-clear a human gate, set `approval: approved`, touch the named off-limits files, or `git add -A`. These come from Steps 2 and 4 and are non-negotiable in the string.
-3. **The lifecycle the loop must carry out** — work the sub-phases in order; for each, implement, verify against its pass criterion, and record it in the devlog; orient at the start and close out at the end the way `/start-session` and `/end-session` do (devlog `status: complete`, `approval: pending` unless the human's sign-off is the trailing act, `docs/state.md` updated, a commit made).
-4. **The proof to surface** — because the evaluator only reads the transcript, require the agent to paste the evidence: the passing test/build output, the gate evidence a human needs (screenshot path, diff, readback, vision-eval), the final `git log -1` line (subject + hash), the devlog path with its `status:` and `approval:` frontmatter lines, and `git status` clean for session files.
-5. **The human-in-the-loop stop condition** — bake in a standing instruction that the loop must STOP and report rather than guess or force through whenever it hits: an irreversible action not pre-authorized, an ambiguous decision the plan doesn't settle, a missing dependency / credential / tool, or the same check failing more than ~2–3 times. Human-in-the-loop is the default whenever the path is unclear. End with the named human gate the goal stops at (e.g. *"then STOP: BLOCKED ON HUMAN GATE — aesthetic sign-off; screenshot surfaced"*).
-6. **A bounded runtime** — append a final stop valve, e.g. *"…or stop after 25–30 turns and report exactly what is blocking."*
+1. **The span and order** — which phases/sub-slices, in the plan's implementation order; what's already done.
+2. **DONE** — the measurable end state: every sub-slice's pass criterion met and PROVEN in-transcript, each recorded in a devlog and committed.
+3. **Per-slice loop** — for each sub-slice: orient like `/start-session` at the run's start; implement; verify against its pass criterion; PROVE via the testability contract (semantic MCP first, synthetic input where a human-gesture path must be exercised; paste green `cargo fmt --check` / `clippy -D warnings` / `cargo test`); write/append a devlog per the frontmatter contract; commit ONLY related files with explicit `git add <paths>`, `status: complete`, `approval: pending`; surface `git log -1` (subject+hash). Roll to the next slice **without waiting for per-sub-phase approval.**
+4. **Self-serve clause** — run all aesthetic/visual checks yourself (vision_eval), save the screenshot path + verdict in the devlog, and CONTINUE; never stop for taste.
+5. **Conditional-proceeds** — each pre-authorized decision as "do X when <testable condition> holds — paste the proof; otherwise STOP and report."
+6. **Hard prohibitions** — never `git reset` / `git tag` / `git push --force` / `git add -A`; never edit the spec (may draft to the queue file only); never set `approval: approved`; never cross a genuinely irreversible gate.
+7. **Stop-and-report list** — the tier-3 conditions: tools down after the semantic fallback, a failed pre-authorized condition, a core-fork need, an unreachable required parity leg, a check failing >3×, an unauthorized irreversible action, or an unsettled decision. On any stop, surface exactly what's blocking and the evidence.
+8. **Runtime cap + final report** — stop after N turns/hours and summarize; on full completion surface the final `git log`, every devlog path with its `status:`/`approval:` lines, and a phase-by-phase proof summary.
 
-Keep it tight and declarative. The condition describes the *end state, the carve-outs, and the evidence for it* — not a step-by-step script. The loop figures out the steps; the condition tells it where it must stop.
+Keep it declarative. The condition describes the *end state, the tier rules, and the evidence* — the loop figures out the steps.
 
 ### Step 6: Return the goal inline
 
-Print the goal **in the chat**, in a copy-paste block, then the exact command line. **Never write it to a file** — `.md` or otherwise — the user reads and pastes it from the conversation. Do **not** invoke the command yourself.
+Print the goal **in the chat**, in a copy-paste block, then the command line. **Never write it to a file.**
 
 ```
-Goal condition for "slash goal" (Phase <N> — <span>):
+Goal condition for "slash goal" (<span>):
 ─────────────────────────────────────────────
 <the composed condition string>
 ─────────────────────────────────────────────
 
-Run it (type the real slash command, not the quoted text):
+Run it (type the real slash command — pasting replaces any active goal):
 "slash goal" <the same condition string>
 
-(Requires Claude Code v2.1.139+. Check progress any time with a bare
-"slash goal"; cancel with "slash goal" clear.)
+(Requires Claude Code v2.1.139+. Check progress with a bare "slash goal";
+cancel with "slash goal" clear.)
 ```
 
-Then, briefly:
-
-- **What to expect** — the loop orients, refuses to proceed if a destructive prerequisite isn't done, works the span surfacing proof as it goes, and stops at the human gate (or the turn cap) without self-approving. You stay in control: a bare `"slash goal"` shows status, `"slash goal"` clear stops it.
-- **Any human prerequisite** — if the goal carved one out (e.g. a confirmed reset), call it out as the one-time step to do first, and offer to walk the user through it.
-- **Chaining** — note that this is one gate-bounded span; offer to generate the next goal once the current gate clears.
+Then briefly: **what to expect** (the loop orients, drives the span surfacing proof, self-serves the soft gates, conditional-proceeds the pre-authorized ones, and stops only at the genuine forks — name them); **any human prerequisite** to do first; and, when the span is wide, **one honest caveat** that a multi-phase goal reaches farther but that the irreversible lines (git history, the spec, dependency acceptance, core forks) are kept as hard stops so "far" never means "unrecoverable."
 
 ## Rules
 
-1. **Generate, don't run.** The skill's job is to produce the condition string and the command line. The user runs the command.
-2. **Return the goal inline in chat — never write it to a file.** The user reads and pastes it from the conversation. No `.md`, no scratch file.
-3. **Keep humans on the boundaries.** Destructive/irreversible steps are carved-out prerequisites; human gates (sign-off, approval, ratification, review) are stop points. Neither ever happens inside the loop, and the goal must never self-approve or self-clear a gate.
-4. **One goal per human-gate span; generate the next only after the prior gate clears.** Don't write a single goal across multiple gates or a whole multi-phase arc.
-5. **Bake a human-in-the-loop stop into every goal.** The loop must stop and report — not guess or force through — on an irreversible/unauthorized action, an ambiguous decision the plan doesn't settle, a missing dependency, or a check failing repeatedly.
-6. **Write every condition as transcript-observable.** The evaluator never runs commands or reads files — if the agent doesn't surface the proof, the goal can't read as met. Always bake "paste the test output / gate evidence / commit line / devlog frontmatter" into the condition.
-7. **One measurable end state, stated first.** Anchor on the span's definition of done, not "make it good."
-8. **Cover the full lifecycle, not just the code.** The goal must carry the start-of-session orientation, the per-sub-phase devlog entries, and the close-out (devlog complete, `approval: pending` by default, state.md, commit).
-9. **Always include a stop valve.** A turn or time cap so a stuck loop ends and reports instead of spinning.
-10. **Speak the project's contract.** Use its real test commands, devlog path, and frontmatter fields (`approval:`, `status:`) — read them in Step 2, don't assume.
-11. **Don't pad past what the plan supports.** If the plan is vague or a sub-phase has no pass criterion, say so and tighten the plan first; don't paper over it with a fuzzy goal.
+1. **A stop is a last resort.** Convert every gate you can — self-serve-and-continue or conditional-proceed. Reserve true stops for the irreversible or genuinely unsettled. An overnight goal that halts at the first aesthetic sign-off is a bug.
+2. **Match the reach to the ask.** Single phase, several phases, or the whole remaining project — a wide multi-phase goal is first-class, not a deviation requiring an escape clause.
+3. **Spend the human's judgment at authoring time.** Elicit the pre-authorizations up front (Step 4) so the loop doesn't stall on them at runtime.
+4. **Self-serve aesthetics and the approval cadence.** Run the automated check, log verdict + evidence, `approval: pending`, continue. The human reviews logged notes later.
+5. **Keep the irreversible lines hard.** Never author a goal that lets the loop rewrite git history, edit the spec, accept a dependency that fails its condition, or take an upstream fork. Those stay tier-3 stops.
+6. **Prove in-transcript.** The evaluator only reads the conversation — bake in "paste the test output / MCP readback / screenshot / commit line / devlog frontmatter." Try the semantic-only fallback before declaring tools-down.
+7. **Return the goal inline in chat — never a file.**
+8. **Generate, don't run.** Produce the string and command line; the user runs it.
+9. **Don't pad past the plan.** If a sub-slice has no pass criterion, say so and tighten the plan first.
 
 ## What NOT to do
 
+- Don't stop at soft gates. Aesthetic sign-offs and the per-sub-phase approval cadence are self-served, not halts.
+- Don't carve every gate out as a stop "to be safe" — that's the failure mode that strands an overnight run. Sort into tiers; stop only at tier 3.
+- Don't silently pick a side on a real decision. Elicit the pre-authorization (or default + confirm); if declined, it's a hard stop.
+- Don't author a goal that runs `git reset`/`git tag`/`git push --force`/`git add -A`, edits the spec, or self-approves.
 - Don't bury the goal in a file. It goes in the chat as copy-paste text.
-- Don't write one goal spanning multiple human gates or a whole arc — scope to a single gate-to-gate span and generate the next after the gate clears.
-- Don't let the loop perform a destructive step or cross a human gate. Those are prerequisites and stop points, not loop work.
-- Don't default to `approval: approved`. Use `approval: pending` and let the human approve, unless their sign-off is genuinely the trailing act.
-- Don't run, simulate, or "test" the `"slash goal"` command — you can't trigger it, and pasting it as text won't set a goal.
-- Don't write a condition the agent's own output can't prove (e.g. "the code is clean" with no surfaced check).
-- Don't omit the runtime cap — an unbounded condition that's subtly unsatisfiable loops until the session dies.
-- Don't invent sub-phases or criteria the phase doc doesn't contain. Generate from the plan as written.
+- Don't run, simulate, or "test" the command — pasting it as text won't set a goal.
+- Don't write a condition the agent's own output can't prove, and don't omit the runtime cap.
