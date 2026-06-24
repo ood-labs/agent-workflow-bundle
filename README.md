@@ -34,7 +34,7 @@ These skills are intended to be user-invoked explicitly.
 | `/end-session` | Phase boundary: close devlog, schema audit, lessons prompt, state.md update, optional slim/playbook nudges, commit |
 | `/find-session` | Inspect previous Claude Code or Codex session transcripts where supported |
 | `/formalize-plan` | Turn a plan-mode plan into phase docs and implementation plan updates |
-| `/slash-goal` | Author a completion-condition string for the built-in `"slash goal"` command that drives as far as you ask — one phase or a whole overnight run — and stops only at genuinely irreversible forks. Sorts every gate into self-serve-and-continue (aesthetics, approval cadence), conditional-proceed (pre-authorized decisions with a testable rule), or hard-stop (git history, spec edits, core forks, unsettled decisions); elicits the pre-authorizations up front so the loop never stalls at 2am; returns the goal inline in chat. Run after `/formalize-plan`, before starting work. |
+| `/slash-goal` | Author a **short** completion-condition for the built-in `"slash goal"` command that points at the phase doc as the contract and drives it end-to-end — `$start-session` / `$audit` / `$end-session` bookended, proof-first, explicit-paths-only, anti-stall, stopping only at the doc's hard blockers. The detail (pass criteria + the Autonomy section's gate tiers and pre-authorizations) lives in the phase doc, so the goal stays terse. Run after `/formalize-plan`, before starting work. |
 
 ### Planning, project bootstrap, knowledge
 
