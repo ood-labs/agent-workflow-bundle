@@ -29,11 +29,12 @@ These skills are intended to be user-invoked explicitly.
 |-------|---------|
 | `/start-session` | Review last commit, read state.md, check most recent devlog frontmatter for `approval` status, audit next task plan, start work |
 | `/checkpoint` | Save mid-work progress with devlog and commit, no phase approval |
-| `/plan-audit` | Pre-implementation 3-agent audit (spec-alignment, toolchain-feasibility, sub-phase decomposition). Run after `/formalize-plan`, before starting work. |
+| `/plan-audit` | Pre-implementation 3-agent audit (spec-alignment, toolchain-feasibility, sub-phase decomposition); applies a best-guess fix for every finding and flags the judgement calls to review/revert. Run after `/formalize-plan`, before starting work. |
 | `/audit` | Post-implementation 3-agent quality gate (code, spec, test) with safe fixes applied |
 | `/end-session` | Phase boundary: close devlog, schema audit, lessons prompt, state.md update, optional slim/playbook nudges, commit |
 | `/find-session` | Inspect previous Claude Code or Codex session transcripts where supported |
 | `/formalize-plan` | Turn a plan-mode plan into phase docs and implementation plan updates |
+| `/slash-goal` | Generate a completion-condition string for the built-in `"slash goal"` command that drives a whole formalized phase to done — every sub-phase, the devlog, and the start/end-session steps. Run after `/formalize-plan`, before starting work. |
 
 ### Planning, project bootstrap, knowledge
 

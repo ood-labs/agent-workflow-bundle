@@ -87,7 +87,13 @@ For phases that involve new libraries, multi-week effort, or architectural commi
 - Toolchain feasibility: do the libraries / APIs exist and behave as the plan assumes?
 - Sub-phase decomposition: are sub-phases independently verifiable, dependencies explicit?
 
-Surfaces blockers and fix-before-implementing items. Skip for routine sub-phases.
+Applies a best-guess fix to the plan doc for every finding it can — derived fixes (missing pass criteria, unnamed dependencies, corrected version assumptions, mega-phase splits) and judgement calls (dropping an untraceable deliverable, picking a replacement library, covering a spec gap) alike — then reports what it changed, flagging the judgement calls with the alternative so you can revert any in one step. Only genuinely-unguessable findings are left as open questions. Skip for routine sub-phases.
+
+### `/slash-goal` (optional, to run a phase autonomously)
+
+After `/formalize-plan` (and optional `/plan-audit`), if you want the phase to run end-to-end under Claude Code's built-in `"slash goal"` loop instead of driving each sub-phase by hand, run `/slash-goal`. It reads the formalized phase doc and emits a single **completion-condition string** to paste into the `"slash goal"` command (Claude Code v2.1.139+).
+
+The generated condition encodes the whole phase lifecycle, not just the code: orient the way `/start-session` does, work each sub-phase in order against its pass criteria, write the devlog, and close out the way `/end-session` does (devlog `status: complete` + `approval: approved`, state.md updated, committed). Because the `"slash goal"` evaluator only judges against what the agent surfaces in the transcript, the condition requires the agent to paste its proof (test output, commit line, devlog frontmatter) and includes a turn cap so a stuck loop stops and reports. The skill generates the string and hands it to you; you run the command.
 
 ### `/start-session`
 
