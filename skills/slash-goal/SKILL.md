@@ -75,16 +75,18 @@ If the user already pre-authorized these in conversation, use those answers — 
 
 ### Step 5: Compose the goal condition
 
-Write **one** condition string (capped ~4,000 chars), phrased as transcript-observable outcomes, with these parts:
+Write **one** condition string (capped ~4,000 chars), phrased as transcript-observable outcomes. **Reference the project's workflow commands with a `$` prefix, not a slash** (`$start-session`, `$audit`, `$end-session`) — that is the convention the runner expects, and a leading slash can be misread. (MCP paths like `/sentinel/graph` and shell commands keep their real syntax.) Include these parts:
 
 1. **The span and order** — which phases/sub-slices, in the plan's implementation order; what's already done.
 2. **DONE** — the measurable end state: every sub-slice's pass criterion met and PROVEN in-transcript, each recorded in a devlog and committed.
-3. **Per-slice loop** — for each sub-slice: orient like `/start-session` at the run's start; implement; verify against its pass criterion; PROVE via the testability contract (semantic MCP first, synthetic input where a human-gesture path must be exercised; paste green `cargo fmt --check` / `clippy -D warnings` / `cargo test`); write/append a devlog per the frontmatter contract; commit ONLY related files with explicit `git add <paths>`, `status: complete`, `approval: pending`; surface `git log -1` (subject+hash). Roll to the next slice **without waiting for per-sub-phase approval.**
-4. **Self-serve clause** — run all aesthetic/visual checks yourself (vision_eval), save the screenshot path + verdict in the devlog, and CONTINUE; never stop for taste.
-5. **Conditional-proceeds** — each pre-authorized decision as "do X when <testable condition> holds — paste the proof; otherwise STOP and report."
-6. **Hard prohibitions** — never `git reset` / `git tag` / `git push --force` / `git add -A`; never edit the spec (may draft to the queue file only); never set `approval: approved`; never cross a genuinely irreversible gate.
-7. **Stop-and-report list** — the tier-3 conditions: tools down after the semantic fallback, a failed pre-authorized condition, a core-fork need, an unreachable required parity leg, a check failing >3×, an unauthorized irreversible action, or an unsettled decision. On any stop, surface exactly what's blocking and the evidence.
-8. **Runtime cap + final report** — stop after N turns/hours and summarize; on full completion surface the final `git log`, every devlog path with its `status:`/`approval:` lines, and a phase-by-phase proof summary.
+3. **Session bookends** — run `$start-session` ONCE at the start of the run to orient (last commit, latest devlog approval, `docs/state.md` if present), then drive autonomously; run a final `$end-session` at the very end before the completion report. These two commands must appear explicitly in the goal — orientation and close-out are not optional.
+4. **Per-slice loop** — for each sub-slice: implement; verify against its pass criterion; PROVE via the testability contract (semantic MCP first, synthetic input where a human-gesture path must be exercised; paste green `cargo fmt --check` / `clippy -D warnings` / `cargo test`); write/append a devlog per the frontmatter contract; run `$audit` on the slice and fix every issue it surfaces before moving on (re-run the relevant proofs after fixes); close the slice like `$end-session` WITHOUT waiting for approval (devlog `status: complete`, `approval: pending`; update `docs/state.md` if it exists; commit ONLY related files with explicit `git add <paths>`); surface `git log -1` (subject+hash); roll straight to the next slice.
+5. **Anti-stall / permission clause** — never let a tool-permission prompt freeze the loop. Instruct the agent to use only auto-approved command forms (`git add <explicit paths>`, `git commit`, `git status`, `git log`, `git diff`, the cargo checks, the MCP tools) and to never run a command that needs an approval prompt. If the harness denies a command, the agent must not sit waiting — switch to an allowed equivalent (e.g. stage explicit paths instead of `git add -A`) and continue; STOP only if no permitted path exists, naming the exact denied command. This is what keeps an overnight run from dying on a permission dialog.
+6. **Self-serve clause** — run all aesthetic/visual checks yourself (vision_eval), save the screenshot path + verdict in the devlog, and CONTINUE; never stop for taste.
+7. **Conditional-proceeds** — each pre-authorized decision as "do X when <testable condition> holds — paste the proof; otherwise STOP and report."
+8. **Hard prohibitions** — never `git reset` / `git tag` / `git push --force` / `git add -A`; never edit the spec (may draft to the queue file only); never set `approval: approved`; never cross a genuinely irreversible gate.
+9. **Stop-and-report list** — the tier-3 conditions: tools down after the semantic fallback, a failed pre-authorized condition, a core-fork need, an unreachable required parity leg, a check failing >3×, a `$audit` issue that can't be fixed without crossing a prohibition, an unauthorized irreversible action with no permitted alternative, or an unsettled decision. On any stop, surface exactly what's blocking and the evidence.
+10. **Runtime cap + final report** — stop after N turns/hours and summarize; on full completion surface the final `git log`, every devlog path with its `status:`/`approval:` lines, and a phase-by-phase proof summary.
 
 Keep it declarative. The condition describes the *end state, the tier rules, and the evidence* — the loop figures out the steps.
 
@@ -115,9 +117,11 @@ Then briefly: **what to expect** (the loop orients, drives the span surfacing pr
 4. **Self-serve aesthetics and the approval cadence.** Run the automated check, log verdict + evidence, `approval: pending`, continue. The human reviews logged notes later.
 5. **Keep the irreversible lines hard.** Never author a goal that lets the loop rewrite git history, edit the spec, accept a dependency that fails its condition, or take an upstream fork. Those stay tier-3 stops.
 6. **Prove in-transcript.** The evaluator only reads the conversation — bake in "paste the test output / MCP readback / screenshot / commit line / devlog frontmatter." Try the semantic-only fallback before declaring tools-down.
-7. **Return the goal inline in chat — never a file.**
-8. **Generate, don't run.** Produce the string and command line; the user runs it.
-9. **Don't pad past the plan.** If a sub-slice has no pass criterion, say so and tighten the plan first.
+7. **A permission prompt must never halt the loop.** Every goal includes the anti-stall clause: use only auto-approved command forms, and on a denial switch to an allowed equivalent and continue rather than waiting. This is the single most common way an overnight run dies — bake it in every time.
+8. **Always bookend with `$start-session` and `$end-session`.** Orientation at the start and close-out at the end are mandatory parts of the goal, plus a `$audit` per slice. Reference workflow commands with a `$` prefix, never a slash.
+9. **Return the goal inline in chat — never a file.**
+10. **Generate, don't run.** Produce the string and command line; the user runs it.
+11. **Don't pad past the plan.** If a sub-slice has no pass criterion, say so and tighten the plan first.
 
 ## What NOT to do
 
@@ -125,6 +129,8 @@ Then briefly: **what to expect** (the loop orients, drives the span surfacing pr
 - Don't carve every gate out as a stop "to be safe" — that's the failure mode that strands an overnight run. Sort into tiers; stop only at tier 3.
 - Don't silently pick a side on a real decision. Elicit the pre-authorization (or default + confirm); if declined, it's a hard stop.
 - Don't author a goal that runs `git reset`/`git tag`/`git push --force`/`git add -A`, edits the spec, or self-approves.
+- Don't author a goal that can stall on a permission prompt. Include the anti-stall clause and use only auto-approved command forms — a dialog at 2am ends the run.
+- Don't omit the `$start-session` / `$end-session` bookends or the per-slice `$audit`. And don't prefix workflow commands with a slash — use `$`.
 - Don't bury the goal in a file. It goes in the chat as copy-paste text.
 - Don't run, simulate, or "test" the command — pasting it as text won't set a goal.
 - Don't write a condition the agent's own output can't prove, and don't omit the runtime cap.
