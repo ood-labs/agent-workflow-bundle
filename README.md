@@ -34,7 +34,7 @@ These skills are intended to be user-invoked explicitly.
 | `/end-session` | Phase boundary: close devlog, schema audit, lessons prompt, state.md update, optional slim/playbook nudges, commit |
 | `/find-session` | Inspect previous Claude Code or Codex session transcripts where supported |
 | `/formalize-plan` | Turn a plan-mode plan into phase docs and implementation plan updates |
-| `/slash-goal` | Generate a completion-condition string for the built-in `"slash goal"` command that drives a whole formalized phase to done — every sub-phase, the devlog, and the start/end-session steps. Run after `/formalize-plan`, before starting work. |
+| `/slash-goal` | Generate a completion-condition string for the built-in `"slash goal"` command that drives a formalized phase to done — every sub-phase, the devlog, and the start/end-session steps — while keeping humans on the boundaries. Scopes each goal to one human-gate span, carves out destructive/sign-off steps as stops, bakes in a stop-and-ask-the-human blocker rule, and returns the goal inline in chat. Run after `/formalize-plan`, before starting work. |
 
 ### Planning, project bootstrap, knowledge
 
