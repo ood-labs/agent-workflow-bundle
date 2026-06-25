@@ -1,7 +1,7 @@
 ---
 name: slash-goal
 description: Author a SHORT completion-condition for the "slash goal" command that points at the phase doc as the contract and drives it end-to-end — proof-first, bookended by $start-session / $audit / $end-session, stopping only at genuine hard blockers. The phase doc (its pass criteria + Autonomy section) carries the detail; the goal stays terse. Run after /formalize-plan (and optional /plan-audit), before you start work.
-allowed-tools: Read, Glob, Grep, AskUserQuestion, Bash(git log:*), Bash(git status:*)
+allowed-tools: Read, Glob, Grep, Bash(git log:*), Bash(git status:*)
 user-invocable: true
 ---
 
@@ -41,41 +41,26 @@ Match the user's ask. One phase, several phases, or the rest of the project — 
 Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlog). Verify it has: bounded sub-slices with **pass criteria**, the **proof method / testability contract**, and an **Autonomy & human-in-the-loop** section with the gate tiers + pre-authorizations. If any is missing:
 
 - Prefer to fix the **doc** (or tell the user it needs `/formalize-plan` to add the Autonomy section).
-- If the user already pre-authorized decisions in conversation that the doc doesn't carry, either add them to the doc or, as a stopgap, inline just those one-liners in the goal. Use `AskUserQuestion` to clear any open decision rather than guessing.
+- If the user already pre-authorized decisions in conversation that the doc doesn't carry, either add them to the doc or, as a stopgap, inline just those one-liners in the goal. Only surface a decision to the user if it's genuinely unsettled and you can't derive it — otherwise make the call, note it, and move on. Don't interrogate the user to author a goal.
 
 ### Step 3: Emit the short goal
 
-Write a terse, doc-referencing condition. Canonical shape (a single short paragraph):
-
-```
-Complete <Phase N — Title> from current HEAD. Start with $start-session.
-Use docs/phases/<doc>.md as the contract and the latest docs/devlogs
-entry as current state. Do not redo committed work; do not start
-<next phase>. Execute end-to-end, proof-first, per the doc's pass
-criteria and its Autonomy section — self-serve the soft gates, follow
-the pre-authorized decisions. Per slice: implement, prove in-transcript,
-devlog, run $audit and fix, then close like $end-session (status:
-complete, approval: pending); stage explicit paths only (never
-git add -A), do not push. Never let a permission prompt stall the loop —
-use auto-approved command forms and, on denial, switch to an allowed
-equivalent and continue. Run a final $end-session. Stop only for a real
-hard blocker (a tier-3 stop in the doc's Autonomy section, a destructive
-git op, an unsettled decision, or a proof contradiction you can't
-resolve in this phase). Cap: <N> turns.
-```
-
-When the doc is rich, trim further — the terser the better:
+Write a terse, doc-referencing condition — a few sentences. Default shape:
 
 ```
 Complete <Phase N> from current HEAD. Start with $start-session. Use
 docs/phases/<doc>.md as the contract and the latest devlog as current
 state. Do not start <next phase>. Execute end-to-end, proof-first, with
-focused tests, the phase's proof artifact, $audit, and $end-session.
-Stage explicit paths only; no git add -A, no push. Stop only for a real
-hard blocker.
+focused tests and the phase's proof artifact, then $audit and
+$end-session. Stage explicit paths only; no git add -A, no push. Never
+let a permission prompt stall the loop — use auto-approved command forms
+and, on denial, switch to an allowed equivalent and continue. Stop only
+for a real hard blocker.
 ```
 
-The non-negotiable rails that stay in even the shortest goal: `$start-session` to open, the phase doc as the contract, "don't start the next phase," proof-first + `$audit` + `$end-session`, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker." Drop anything the doc already states; keep these.
+Drop anything the phase doc already states — don't re-encode sub-slice order, pass criteria, or the per-slice ritual ($audit/devlog/approval), which the doc and $end-session already own. The rails below stay regardless of length.
+
+The non-negotiable rails: `$start-session` to open, the phase doc as the contract, "don't start the next phase," proof-first + `$audit` + `$end-session`, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
 
 ### Step 4: Return the goal inline
 
@@ -86,7 +71,7 @@ Print the goal **in the chat**, in a copy-paste block, then the command line. **
 1. **Keep the goal short — the phase doc is the contract.** Reference the doc; don't re-encode sub-slices, pass criteria, or gate detail that lives there. A goal that needs scrolling is a smell.
 2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first + `$audit` + `$end-session`, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
 3. **A permission prompt must never halt the loop.** Auto-approved command forms only; on denial, switch to an allowed equivalent and continue. This is the most common way an overnight run dies.
-4. **Gates are decided in the plan.** Self-serve / conditional-proceed / hard-stop and the pre-authorizations belong in the phase doc's Autonomy section; the goal just points there. Elicit any missing decision up front (Step 2), don't let the loop hit it cold.
+4. **Gates are decided in the plan.** Self-serve / conditional-proceed / hard-stop and the pre-authorizations belong in the phase doc's Autonomy section; the goal just points there. If a decision is genuinely unsettled, surface it; otherwise make the call and proceed — don't interrogate the user.
 5. **Match the reach to the ask.** Single phase or several — name the span and the stop line.
 6. **Prove in-transcript.** The evaluator only reads the conversation; the doc's proof method must produce transcript-visible evidence (test output, MCP readback, screenshot, commit line, devlog frontmatter).
 7. **Use `$` for workflow commands, never a slash.** `$start-session`, `$audit`, `$end-session`. (MCP paths and shell commands keep their real syntax.)
@@ -99,4 +84,5 @@ Print the goal **in the chat**, in a copy-paste block, then the command line. **
 - Don't author a goal that can stall on a permission prompt, runs `git add -A` / `git reset` / `git tag` / `git push --force`, edits the spec, or self-approves.
 - Don't prefix workflow commands with a slash — use `$`.
 - Don't paper over a thin plan. Missing pass criteria or Autonomy section → fix the doc, don't inflate the goal.
-- Don't run, simulate, or "test" the command, and don't omit the turn cap.
+- Don't run, simulate, or "test" the command.
+- Don't add a turn/time cap. The goal stops at its hard blockers or when the work is done — never invent an arbitrary turn limit unless the user explicitly asks for one.
