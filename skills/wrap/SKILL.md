@@ -46,6 +46,17 @@ Set the devlog `status: complete`, `approval: pending`. That's it. **Do not** to
 2. Short message from the devlog `summary:` (e.g. `feat(4.1b): <summary>`).
 3. Commit. No push, no `--amend`, no tags.
 
+## Step 4: Continue to the next sub-slice
+
+`/wrap` is a roll-through, not a stopping point. After committing, immediately pick up the next sub-slice in the plan's implementation order and keep working — don't wait for approval or ask the user whether to proceed.
+
+Stop instead of continuing only when:
+- the slice you just closed completes the whole **phase** → run `/end-session` to record the boundary, don't roll into the next phase;
+- the next sub-slice hits a gate or hard blocker per the phase doc's Autonomy section;
+- the user explicitly asked to pause after this slice.
+
+Otherwise, on to the next slice.
+
 ## What this skill does NOT do
 
 Skipped on purpose (that's the point — speed). All of these live in `/end-session`:
@@ -61,7 +72,8 @@ If this slice actually finishes a whole **phase** (not just a sub-slice), don't 
 
 ## Rules
 
-- **One sub-slice, one quick pass.** Short devlog, explicit-path commit, done.
+- **One sub-slice, one quick pass.** Short devlog, explicit-path commit, then straight on to the next slice.
+- **Keep going by default.** `/wrap` rolls into the next sub-slice; it stops only at a phase boundary (→ `/end-session`), a gate/blocker, or an explicit user pause.
 - **Never `git add -A`/`.`; never push or amend.** Stage what you touched.
 - **`approval: pending` always.** Slice close-out never approves; the phase boundary does.
 - **No ceremony.** If you find yourself synthesizing lessons or auditing schema, you're in `/end-session` territory — stop.
