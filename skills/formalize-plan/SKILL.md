@@ -13,7 +13,7 @@ DO:
    - Overview and motivation
    - Problem statement (before/after if applicable)
    - Deliverables table (ID, feature, tool, actions, status)
-   - Each sub-phase with: parameters, response schemas, UE APIs, implementation details, and an explicit **pass criterion** (definition-of-done provable in-transcript)
+   - Each sub-phase with: parameters, response schemas, UE APIs, implementation details, and an explicit **pass criterion** (definition-of-done provable in-transcript). **The criterion must bite:** for any user-facing feature, at least one pass criterion must be a *visible/behavioral/executing* gate that is **false unless the experience actually exists** — "a human can SEE X on the canvas," "you can DO Y," "it RUNS and the output changes." Readback / log-line / "artifact exists" / "screenshot captured" criteria are necessary but never sufficient for a feature phase — a mock clears them. Screenshot criteria must assert what the image has to contain (a vision_eval-style content check), not just that a capture was taken.
    - Files summary (new files, modified files, no-change files with reasons)
    - Implementation order
    - Verification plan (the proof method / testability contract — how each sub-phase is proven, e.g. tests, MCP readback, capture)
@@ -28,6 +28,10 @@ DO:
    - **Hard blockers** — the tier-3 list that should stop the run.
 
    A short `/slash-goal` then just points at this doc instead of re-encoding it.
+
+   **Make the governing spec the acceptance bar, not a citation.** If the phase names a governing spec section, the pass criteria must be at least as strong as that section's requirements — the result will be checked against the phase doc, so the phase doc must not be a weaker bar than the spec. Trace each governing-spec requirement to a criterion that enforces it. Citing §X.Y in the Overview is not the same as verifying against it.
+
+   **Frame foundation/substrate phases honestly.** If a phase delivers only substrate (a data model, an MCP surface, an ID/serialization layer) and nothing a user can see, touch, or run yet, say so plainly in the title and Overview — "Phase 1 of N: durable model only; nothing visible or executable yet" — and name the companion phase that delivers the visible/executing feature. A word like "Model" or "Boundary" in the title must not let "substrate done" be reported later as "feature done."
 3. **Update `docs/implementation-plan.md`**:
    - Add the new phase to the Phase Overview table with link to detailed plan
    - Add/update the phase section in the body (sub-phases table, MCP tools, dependencies, implementation order)
