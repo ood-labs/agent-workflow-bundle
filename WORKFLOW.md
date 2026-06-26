@@ -105,6 +105,10 @@ Begin a session. The agent reads the last commit, the most recent devlog's `appr
 
 Save progress mid-work. Writes a devlog entry, commits, and explicitly does NOT mark anything approved. Use this when you're pausing partway through a sub-phase.
 
+### `/wrap`
+
+Lightweight sub-phase close-out — the middle weight between `/checkpoint` and `/end-session`. When a sub-slice meets its pass criterion and you want to roll straight to the next one, `/wrap` writes a short devlog (`status: complete`, `approval: pending`) and commits the touched paths, then stops. It deliberately skips the `/end-session` ceremony (lessons, schema audit, slim/playbook nudges, state.md walk, plan verification, Current Status changes) — those happen at the real phase boundary. The per-slice closer that `/slash-goal` goals reference: `$wrap` each slice, a full `$end-session` at phase end. If a slice actually finishes a whole phase, use `/end-session` instead so the boundary is recorded.
+
 ### `/audit`
 
 Quality gate at any point in a session. Three parallel Explore agents (code, spec, test). If `docs/design/spec.md` exists, the spec agent measures against it by section number. Includes phase coherence check (do changes match active phase doc scope) and missing-devlog detection.
