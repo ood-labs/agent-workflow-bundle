@@ -4,6 +4,76 @@ A complete agent-driven development workflow for Codex, Claude Code, and other s
 
 Everything is packaged as portable `SKILL.md` folders. Each skill is invocable by name in compatible agents; Claude Code can keep using slash-style names like `/<skill-name>`, and Codex can load the same folders from its skill home.
 
+## Workflow at a glance
+
+Three stages — converse & research, scaffold, then a per-phase develop loop — plus ongoing maintenance. The full narrative is in [WORKFLOW.md](WORKFLOW.md).
+
+```mermaid
+flowchart TD
+  A[conversation] --> B[/research-prompt/]
+  B --> C[external deep research] --> D[discuss findings]
+  D --> E[/spec-draft → spec.md/]
+  E --> F[/scaffold-project/]
+  F --> G[/formalize-plan/]
+  G --> H[/plan-audit · 4-agent gate/]
+  H --> I[/slash-goal · short autonomous goal/]
+  I --> J[/start-session/]
+  J --> K{work loop}
+  K -->|sub-slice done| L[/wrap → next slice/]
+  L --> K
+  K -->|mid-work save| M[/checkpoint/]
+  K -->|quality gate| N[/audit/]
+  K -->|phase done| O[/end-session: devlog, approval, commit, push/]
+  O -->|next phase| G
+  O --> P[maintain: lookup · find-session · slim · extract-playbook · audit-playbooks]
+```
+
+The three closers, lightest to heaviest: **`/checkpoint`** (mid-work save, not a boundary) → **`/wrap`** (sub-slice done, roll on) → **`/end-session`** (full phase close-out).
+
+<details>
+<summary>Plain-text version (for terminals / non-Mermaid viewers)</summary>
+
+```
+ STAGE 1 · CONVERSE & RESEARCH
+   conversation
+        │
+        ▼
+   /research-prompt ──▶ (external deep research) ──▶ discuss findings
+        │
+        ▼
+   /spec-draft ······▶ docs/design/spec.md        (multi-week projects only)
+        │
+        ▼
+ STAGE 2 · SCAFFOLD
+   /scaffold-project ──▶ AGENTS.md + CLAUDE.md, docs/, phases, skills, git
+        │
+        ▼
+ STAGE 3 · ACTIVE DEVELOPMENT   ◀─────────────────────────┐  (repeat per phase)
+   /formalize-plan ──▶ /plan-audit ──▶ /slash-goal         │
+   (plan → phase doc)  (4-agent gate)  (short autonomous   │
+        │                               goal, optional)    │
+        ▼                                                  │
+   /start-session                                          │
+        │                                                  │
+        ▼                                                  │
+   ┌─────────── work loop ───────────┐                     │
+   │  implement                      │                     │
+   │  /wrap       close sub-slice,   │                     │
+   │              roll to next  ─────┼──▶ (next sub-slice) │
+   │  /checkpoint mid-work save      │                     │
+   │  /audit      quality gate       │                     │
+   └─────────────────────────────────┘                     │
+        │                                                  │
+        ▼                                                  │
+   /end-session ──▶ devlog complete · approval · state ·   │
+        │            lessons · commit · push ──────────────┘
+        ▼
+ MAINTENANCE (ongoing)
+   /lookup · /find-session · /slim-agent-md · /extract-playbook · /audit-playbooks
+```
+
+</details>
+
 ## What's inside
 
 | Path | What it is |
