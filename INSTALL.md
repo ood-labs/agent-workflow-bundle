@@ -173,6 +173,7 @@ The following stay in the bundle folder:
 - `README.md`: for the user to read about the bundle
 - `INSTALL.md`: this file
 - `WORKFLOW.md`: the workflow narrative
+- `AGENTS.md` / `CLAUDE.md`: instructions for working on the bundle repo itself, not for installing into target projects
 - `example-skeleton/`: illustrative example of what `/scaffold-project` produces
 - `scripts/`: installer helpers
 
