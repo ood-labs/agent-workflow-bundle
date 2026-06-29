@@ -18,7 +18,7 @@ If the phase doc lacks pass criteria or an Autonomy section, that's a plan gap. 
 
 ## About the "slash goal" command
 
-`"slash goal"` (written here with the word *slash* and no `/` character on purpose) is a built-in Claude Code command — Claude Code **v2.1.139+** — that sets a **completion condition** and loops the agent's work autonomously until it's met. After each turn a small evaluator model checks the condition against **what the agent has surfaced in the transcript** (it does not run commands or read files itself) and returns a steer. Setting a new goal replaces the active one. View status with a bare `"slash goal"`; cancel with `"slash goal"` clear. On a runner that uses `$` for workflow commands (Codex-style), the goal still references `$start-session` etc. with `$`, never a slash.
+`"slash goal"` (written here with the word *slash* and no `/` character on purpose) is a built-in Claude Code command — Claude Code **v2.1.139+** — that sets a **completion condition** and loops the agent's work autonomously until it's met. After each turn a small evaluator model checks the condition against **what the agent has surfaced in the transcript** (it does not run commands or read files itself) and returns a steer. Setting a new goal replaces the active one. View status with a bare `"slash goal"`; cancel with `"slash goal"` clear. Workflow commands inside the goal use `$` (Codex — the default) or `/` (Claude Code — only when the user asks for it); see Step 3 for the format rule.
 
 ## Gates live in the plan, not the goal
 
@@ -45,26 +45,24 @@ Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlo
 
 ### Step 3: Emit the short goal
 
-Write a terse, doc-referencing condition — a few sentences. Default shape:
+Write a terse, doc-referencing condition — a few sentences, emitted as **one unbroken line** (no hard line breaks inside it). Default shape (Codex `$` form):
 
 ```
-Complete <Phase N> from current HEAD. Start with $start-session. Use
-docs/phases/<doc>.md as the contract and the latest devlog as current
-state. Do not start <next phase>. Execute end-to-end, proof-first, with
-focused tests and the phase's proof artifact. Close each sub-slice with
-$wrap; run $audit and a final $end-session at phase end. Stage explicit
-paths only; no git add -A, no push. Never let a permission prompt stall
-the loop — use auto-approved command forms and, on denial, switch to an
-allowed equivalent and continue. Stop only for a real hard blocker.
+Complete <Phase N> from current HEAD. Open with $start-session and use docs/phases/<doc>.md as the contract with the latest devlog as current state. Do not start <next phase>. Execute end-to-end, proof-first, with focused tests and the phase's proof artifact. Close each sub-slice with $wrap and run $audit then a final $end-session at phase end. Stage explicit paths only; no git add -A, no push. Never let a permission prompt stall the loop — use auto-approved command forms and, on denial, switch to an allowed equivalent and continue. Stop only for a real hard blocker.
 ```
 
-Drop anything the phase doc already states — don't re-encode sub-slice order, pass criteria, or the per-slice ritual, which the doc and `$wrap` already own. The rails below stay regardless of length.
+Drop anything the phase doc already states — don't re-encode sub-slice order, pass criteria, or the per-slice ritual, which the doc and the wrap command already own. The rails below stay regardless of length.
 
-The non-negotiable rails: `$start-session` to open, the phase doc as the contract, "don't start the next phase," proof-first, per-slice close with `$wrap`, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
+**Workflow-command syntax depends on the target runner:**
 
-### Step 4: Return the goal inline
+- **Default (unspecified) → Codex `$` form.** Write `$start-session`, `$wrap`, `$audit`, `$end-session`. In this form **every `$` token MUST be flanked by spaces** — never put a comma, period, semicolon, or any other character directly against it (`$wrap,` / `$audit.` / `$end-session;` won't parse). Phrase so each token is *followed by a space and a word* (`... with $wrap and run $audit then a final $end-session at phase end`), not by punctuation.
+- **Claude Code (only when the user asks — e.g. "for claude", "claude format", "slashes") → `/` form.** Write `/start-session`, `/wrap`, `/audit`, `/end-session`. Punctuation adjacency is fine here (`/wrap;` parses).
 
-Print the goal **in the chat**, in a copy-paste block, then the command line. **Never write it to a file.** Add one or two lines on what to expect and which hard blockers could stop it. Don't run the command yourself.
+The non-negotiable rails: open with the session-start command, the phase doc as the contract, "don't start the next phase," proof-first, per-slice close with the wrap command, audit + end-session at phase end, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
+
+### Step 4: Return the goal — and nothing else
+
+Output **only** the goal, as a single unbroken line inside one fenced code block. No preamble, no "what to expect," no command-line line, no trailing commentary — nothing before or after the block. The block must contain **no internal line breaks** so it copies and pastes in one piece. **Never write it to a file** and never run the command yourself.
 
 ## Rules
 
@@ -74,15 +72,16 @@ Print the goal **in the chat**, in a copy-paste block, then the command line. **
 4. **Gates are decided in the plan.** Self-serve / conditional-proceed / hard-stop and the pre-authorizations belong in the phase doc's Autonomy section; the goal just points there. If a decision is genuinely unsettled, surface it; otherwise make the call and proceed — don't interrogate the user.
 5. **Match the reach to the ask.** Single phase or several — name the span and the stop line.
 6. **Prove in-transcript — but transcript-observable is not the same as feature-proven.** The evaluator only reads the conversation, so the proof must be visible there (test output, MCP readback, screenshot, commit line, devlog frontmatter). The trap: a readback or a screenshot of placeholder text is transcript-observable and proves nothing. For a user-facing feature, the doc's proof method must *exercise the feature the way a user would* and **assert on captures** (vision_eval on what the image must contain), not just produce them. If the phase doc's pass criteria are all readback-shaped, that's a plan defect — surface it (it's what `/plan-audit`'s acceptance-bar agent catches), don't drive a goal that will clear a mock.
-7. **Use `$` for workflow commands, never a slash.** `$start-session`, `$wrap`, `$audit`, `$end-session`. (MCP paths and shell commands keep their real syntax.)
-8. **Return the goal inline in chat — never a file. Generate, don't run.**
+7. **Match workflow-command syntax to the target runner.** Default to Codex `$` form (`$start-session`, `$wrap`, `$audit`, `$end-session`) with **every `$` token flanked by spaces — never touching a comma, period, or semicolon**, or Codex won't parse it. Only when the user asks for Claude Code ("for claude", "slash format") use `/` form instead, where punctuation adjacency is fine. (MCP paths and shell commands keep their real syntax in both.)
+8. **Output only the goal — one unbroken line, nothing else.** A single fenced block with no internal line breaks, no surrounding prose, no command line. Never a file. Generate, don't run.
 
 ## What NOT to do
 
 - Don't write a long goal that duplicates the phase doc. If you're restating pass criteria or sub-slice order, stop — point at the doc instead.
 - Don't drop the safety rails to make it short. Brevity comes from removing what the doc carries, not from removing `$start-session` / `$end-session` / anti-stall / the stop line.
 - Don't author a goal that can stall on a permission prompt, runs `git add -A` / `git reset` / `git tag` / `git push --force`, edits the spec, or self-approves.
-- Don't prefix workflow commands with a slash — use `$`.
+- Don't let a `$` workflow token touch punctuation in Codex form (`$wrap,` / `$audit.` break parsing) — keep a space on both sides. (In Claude `/` form this doesn't apply.)
+- Don't wrap the goal across multiple lines or add any prose around it — one unbroken line, in one block, nothing else.
 - Don't paper over a thin plan. Missing pass criteria or Autonomy section → fix the doc, don't inflate the goal.
 - Don't run, simulate, or "test" the command.
 - Don't add a turn/time cap. The goal stops at its hard blockers or when the work is done — never invent an arbitrary turn limit unless the user explicitly asks for one.
