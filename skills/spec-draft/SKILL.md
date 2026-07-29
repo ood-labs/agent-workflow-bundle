@@ -1,7 +1,7 @@
 ---
 name: spec-draft
 description: Generate a design specification document from research results and conversation context. Models on the Sentinel-2 spec template (Pick + Why Not blocks, Risk Register, Open Questions, Implementation Kickoff Checklist). Two modes: full (multi-week projects) and lite (2-3 week projects).
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 user-invocable: true
 ---
 
@@ -80,7 +80,7 @@ Write to `docs/design/spec.md`. Match the structure of the chosen mode. Each sec
 - **Cross-references** with `§X.Y` notation when referencing other spec sections
 - **Risk register** with severity (low / medium / high), mitigation, and owner
 - **Open questions** as a first-class section with a tracking ID per question (Q1, Q2, ...)
-- **Dependency and license matrix** as a table: dependency, version, license, verdict (clean / copyleft-quarantined / blocked)
+- **Dependency and license matrix** as a table: dependency, version, license, verdict (clean / copyleft-quarantined / blocked). The version column must be registry-verified current (check crates.io / npmjs.com / PyPI via WebFetch/WebSearch, or the toolchain's own resolver) — never a version written from model memory, which is stale by the training cutoff
 - **MVP phasing** as a table: milestone, capabilities, deferred-to-later, ship target
 - **Frontmatter** at the top of the file: `type: spec`, `status: draft | approved`, `summary`, `note_created`, `updated`
 

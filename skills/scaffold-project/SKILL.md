@@ -373,6 +373,8 @@ Based on the tech stack, create the minimal source code structure:
 - Module/handler structure matching the planned tool/API surface
 - Stub functions that raise `NotImplementedError` with the phase they'll be implemented in
 
+**Dependency versions: never write a version number from model memory.** Training data lags the registry by months to years, and for 0.x crates Cargo's caret semantics (`"0.35"` = `^0.35`) freeze a stale pin permanently — no `cargo update` will ever cross it. Resolve every dependency through the toolchain, which queries the live registry: `cargo add <crate>`, `npm install <pkg>@latest`, `uv add <pkg>` (or `pip index versions <pkg>`). Only when the toolchain isn't available in the session, look the current version up on the registry itself (crates.io, npmjs.com, PyPI) with WebFetch/WebSearch before writing it.
+
 The code should be **structurally complete but functionally empty** — all the wiring in place, no business logic.
 
 For non-web projects answering "yes" to MCP co-development:
@@ -414,6 +416,7 @@ gh repo create {project-name} --private --source=. --push
 12. **Frontmatter contract is non-optional** — `docs/SCHEMA.md` ships with every project. Devlogs, phase docs, knowledge files, lessons, state, spec all use it. Skills like `/start-session`, `/end-session`, `/find-session`, `/audit` query frontmatter via grep.
 13. **Adopt the bundle's templates** — copy from the installed `scaffold-project/templates/` into the new project. Don't re-invent format conventions.
 14. **Surface relevant playbooks early** — read the active global `playbooks/INDEX.md` and tell the user which patterns apply to their stack. Saves them from re-deriving.
+15. **Dependency versions come from the registry, not memory** — resolve with `cargo add` / `npm install <pkg>@latest` / `uv add` (they query the live registry), or verify on crates.io / npmjs.com / PyPI. A from-memory version is stale by the model's training cutoff at the moment it's written.
 
 ## What NOT to Do
 
@@ -424,3 +427,4 @@ gh repo create {project-name} --private --source=. --push
 - Don't skip the implementation plan — it's the backbone of the entire development system
 - Don't make AGENTS.md or CLAUDE.md a wall of text — keep it scannable, link out to knowledge files for depth
 - Don't ship MCP co-development for projects that don't need it. Pure web apps, single-file scripts, and read-only tools rarely benefit. The cost is real (extra Rust crate, ZMQ dependency, command queue plumbing).
+- Don't pin dependency versions from model memory — training data lags, caret semantics on 0.x versions freeze the stale pin forever, and nothing downstream re-checks freshness. Resolve via the toolchain or the registry (Rule 15).
