@@ -15,7 +15,7 @@ Multi-phase workflow. Each phase short. Skip silently if nothing to do.
 
 1. Glob `docs/devlogs/*.md` and find the most recent. Read it.
 2. Read `docs/state.md` if it exists.
-3. Read `AGENTS.md` and/or `CLAUDE.md` Current Status section.
+3. Read the `AGENTS.md` Current Status section. (CLAUDE.md is normally an `@AGENTS.md` import stub; read it only in legacy projects where it still carries full sections.)
 4. Run `git status` and `git diff --stat` to see what changed this session.
 5. Read the current phase doc from `docs/phases/` (most recent or referenced in state.md).
 
@@ -54,7 +54,7 @@ If a sub-phase (e.g., 4a, 4b) or full phase was completed this session:
 
 1. Set frontmatter `approval: approved` on the devlog.
 2. Update the phase doc's frontmatter `status:` to `approved`.
-3. Update `AGENTS.md` and `CLAUDE.md` Current Status sections, when present, to reflect the new active phase / sub-phase.
+3. Update the `AGENTS.md` Current Status section to reflect the new active phase / sub-phase. **Never add a Current Status (or any section) to a CLAUDE.md that is an `@AGENTS.md` import stub** — one edit to AGENTS.md reaches both agents. Update CLAUDE.md too only in legacy projects where it still duplicates full content.
 4. If the implementation plan's Phase Overview table tracks status, update the row.
 
 If we paused mid-sub-phase, leave `approval: pending`. Don't update Current Status to a new phase.

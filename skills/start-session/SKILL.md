@@ -11,7 +11,7 @@ CONTEXT TO READ AT START:
 - Last commit (`git log -1`, `git show HEAD`) for what shipped most recently
 - Most recent devlog in `docs/devlogs/` — check frontmatter `approval` field for `approved` vs `pending`. This drives PHASE TRANSITIONS below.
 - `docs/state.md` if it exists — slim snapshot of current focus, blockers, decisions pending. Read this for orientation.
-- `AGENTS.md` and/or `CLAUDE.md` Current Status section — high-level phase context.
+- `AGENTS.md` Current Status section — high-level phase context. (CLAUDE.md is normally an `@AGENTS.md` import stub with no content of its own; read it only in legacy projects where it still carries full sections.)
 - The current phase doc from `docs/phases/` (referenced in state.md or implementation-plan.md).
 
 If the active instruction file's Current Status references a date older than ~2 weeks, surface it: "Current Status hasn't been updated in N days, may be stale." Don't auto-fix; let the user decide.

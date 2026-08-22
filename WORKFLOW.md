@@ -60,7 +60,7 @@ Once you have a clear direction (and optionally a spec), invoke `/scaffold-proje
 - Whether to scaffold MCP co-development infrastructure
 - Relevant playbooks from the global library to surface
 
-The agent builds the full project: `AGENTS.md`, a Claude Code compatibility `CLAUDE.md`, `docs/SCHEMA.md` (frontmatter contract), `docs/implementation-plan.md`, phase docs with frontmatter, knowledge base index, `docs/state.md`, `docs/lessons.md`, code skeleton, `.gitignore`, git init, optional GitHub publish.
+The agent builds the full project: `AGENTS.md` (canonical), a `CLAUDE.md` `@AGENTS.md` import stub, `docs/SCHEMA.md` (frontmatter contract), `docs/implementation-plan.md`, phase docs with frontmatter, knowledge base index, `docs/state.md`, `docs/lessons.md`, code skeleton, `.gitignore`, git init, optional GitHub publish.
 
 If a `docs/design/spec.md` exists from `/spec-draft`, the implementation plan derives from it.
 
@@ -78,7 +78,7 @@ Open Codex or Claude Code in the new project folder.
 
 ### `/formalize-plan` (after plan mode)
 
-After plan-mode planning, formalize the plan into project docs. Writes `docs/phases/phase-{N}-{slug}.md` with proper frontmatter, updates `docs/implementation-plan.md` Phase Overview table, updates `AGENTS.md` and `CLAUDE.md` Current Status. Commits as `docs(plan): Phase N - Title`.
+After plan-mode planning, formalize the plan into project docs. Writes `docs/phases/phase-{N}-{slug}.md` with proper frontmatter, updates `docs/implementation-plan.md` Phase Overview table, updates `AGENTS.md` Current Status (CLAUDE.md is an import stub — one edit reaches both agents). Commits as `docs(plan): Phase N - Title`.
 
 ### `/plan-audit` (optional, before starting a new phase)
 
@@ -121,7 +121,7 @@ Applies safe fixes (small, mechanical), surfaces larger issues for your decision
 Multi-phase wrap-up:
 1. Read context (last devlog, state.md, git status)
 2. Close the devlog (frontmatter `status: complete`, `session_end`, `approval`)
-3. Phase approval check (flip frontmatter, update AGENTS.md and CLAUDE.md Current Status)
+3. Phase approval check (flip frontmatter, update AGENTS.md Current Status)
 4. Update `docs/state.md`
 5. Lessons prompt (any sneaky bugs? → append to `docs/lessons.md`)
 6. Schema audit (validate frontmatter on touched files)
@@ -145,7 +145,7 @@ Find and inspect previous agent session transcripts where supported. Useful when
 The discipline:
 - Every commit is preceded by a closed devlog.
 - Every phase boundary is explicitly marked via frontmatter `approval: approved`.
-- `AGENTS.md` and `CLAUDE.md` Current Status reflect where you actually are (1-3 lines). Detail lives in `docs/state.md`.
+- `AGENTS.md` Current Status reflects where you actually are (1-3 lines); `CLAUDE.md` stays an `@AGENTS.md` import stub. Detail lives in `docs/state.md`.
 - Sneaky bugs go to `docs/lessons.md` so future-you doesn't re-derive them.
 - Significant cross-project patterns get extracted via `/extract-playbook`.
 
@@ -157,7 +157,7 @@ After many sessions, several things drift if untended.
 
 Detail accretes. Known Pitfalls collections grow, Current Status turns into a series of mini-devlogs, individual subsystems get multi-page sections. Past 25,000 characters, session startup slows. Past 40,000, agent context gets crowded.
 
-When `AGENTS.md` or `CLAUDE.md` crosses 25,000 characters, run the slimming workflow. The skill walks every section, classifies each as keep, compress, extract to a knowledge file, extract to lessons.md (for pitfall-shaped content), extract to a new skill, or delete (only when stale or duplicated). Shows the plan before applying. Hard ceiling 40K chars, target 20-25K.
+When `AGENTS.md` crosses 25,000 characters (or a legacy full-content `CLAUDE.md` does), run the slimming workflow. The skill walks every section, classifies each as keep, compress, extract to a knowledge file, extract to lessons.md (for pitfall-shaped content), extract to a new skill, or delete (only when stale or duplicated). Shows the plan before applying. Hard ceiling 40K chars, target 20-25K.
 
 ### Cross-project patterns recur
 

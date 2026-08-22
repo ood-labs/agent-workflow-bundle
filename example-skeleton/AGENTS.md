@@ -1,5 +1,7 @@
 # Agent Instructions for ExampleApp
 
+**This file is canonical. CLAUDE.md is an `@AGENTS.md` import stub — edit this file only.**
+
 ## Project Overview
 
 ExampleApp is a native desktop image processing tool with a Dear ImGui frontend, GPU compute backend, and a Rust MCP server for end-to-end automation by coding agents. This is a sample project produced by `/scaffold-project`. Replace this paragraph with your own project description when using this skeleton as a starting point.
@@ -23,7 +25,7 @@ ExampleApp is a native desktop image processing tool with a Dear ImGui frontend,
 ```
 ExampleApp/
 ├── AGENTS.md
-├── CLAUDE.md                     # Claude Code compatibility pointer or mirror
+├── CLAUDE.md                     # @AGENTS.md import stub (+ optional Claude-only rules)
 ├── .agents/skills/               # Canonical project-specific skills
 ├── .codex/skills/                # Codex mirror when needed
 ├── .claude/skills/               # Claude Code mirror when needed

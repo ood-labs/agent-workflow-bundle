@@ -36,7 +36,7 @@ DO:
    - Add the new phase to the Phase Overview table with link to detailed plan
    - Add/update the phase section in the body (sub-phases table, MCP tools, dependencies, implementation order)
    - Update any "Future Phases" sections that referenced this phase as planned
-4. **Update `AGENTS.md` and `CLAUDE.md`** Current Status sections when those files exist, so Codex and Claude Code see the same active phase
+4. **Update `AGENTS.md`** Current Status when it exists — CLAUDE.md is normally an `@AGENTS.md` import stub, so the one edit reaches both Codex and Claude Code. Never add sections to a stub; update CLAUDE.md too only in legacy projects where it still duplicates full content
 5. **Commit** all changes with message format: `docs(plan): Phase {N} - {Title}`
 6. **Offer the goal.** After committing, if the phase doc has a complete Autonomy section, offer to run `/slash-goal` to emit a short completion-condition that points at this doc and drives the phase autonomously. (For substantial or multi-week phases, suggest `/plan-audit` first.) Don't auto-run either — just surface the next step.
 

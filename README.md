@@ -45,7 +45,7 @@ The three closers, lightest to heaviest: **`/checkpoint`** (mid-work save, not a
         │
         ▼
  STAGE 2 · SCAFFOLD
-   /scaffold-project ──▶ AGENTS.md + CLAUDE.md, docs/, phases, skills, git
+   /scaffold-project ──▶ AGENTS.md + CLAUDE.md stub, docs/, phases, skills, git
         │
         ▼
  STAGE 3 · ACTIVE DEVELOPMENT   ◀─────────────────────────┐  (repeat per phase)
@@ -115,7 +115,7 @@ User-invocable. Agents may also auto-trigger when the description matches the co
 |-------|---------|
 | `/research-prompt` | Write a research-question document for deep external investigation (Gemini Deep Research, etc.) |
 | `/spec-draft` | Generate `docs/design/spec.md` from research + conversation. Full mode (Sentinel-2 style, 15+ sections) or lite mode (8-10 sections). |
-| `/scaffold-project` | Bootstrap a new project with full development system (AGENTS.md + CLAUDE.md, implementation plan, phase docs, knowledge base, code skeleton, MCP co-development surface for non-web apps) |
+| `/scaffold-project` | Bootstrap a new project with full development system (canonical AGENTS.md + CLAUDE.md `@AGENTS.md` import stub, implementation plan, phase docs, knowledge base, code skeleton, MCP co-development surface for non-web apps) |
 | `/slim-agent-md` | Refactor bloated AGENTS.md / CLAUDE.md files into knowledge files, lessons.md, or new skills. Hard ceiling 40K chars, target 20-25K. |
 | `/slim-claude-md` | Backward-compatible alias for older Claude Code projects. |
 | `/lookup` | Search project `docs/knowledge/` AND global playbooks by keyword |
@@ -169,7 +169,7 @@ See `WORKFLOW.md` for the full pipeline. The short version:
 5. `/scaffold-project` to create the project folder, plan, and code skeleton.
 6. Open Codex or Claude Code in the new project. After `/formalize-plan` for each new phase, optionally `/plan-audit` before starting work.
 7. Use `/start-session`, `/checkpoint`, `/audit`, `/end-session` to manage sessions. `/find-session` to inspect prior session transcripts.
-8. As AGENTS.md or CLAUDE.md grows past 25K chars, run `/slim-agent-md`.
+8. As AGENTS.md grows past 25K chars (CLAUDE.md is an import stub and never grows), run `/slim-agent-md`.
 9. When you spot a recurring cross-project pattern, run `/extract-playbook`.
 
 ## When to use MCP co-development

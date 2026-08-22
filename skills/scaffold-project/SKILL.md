@@ -62,8 +62,8 @@ Phase 1 of the implementation plan is always: build PING end-to-end, then state 
 
 ```
 {project-name}/
-├── AGENTS.md                     # Lean cross-agent project instructions (~150 lines)
-├── CLAUDE.md                     # Claude Code compatibility pointer or mirror
+├── AGENTS.md                     # CANONICAL cross-agent project instructions (~150 lines)
+├── CLAUDE.md                     # @AGENTS.md import stub (+ optional Claude-only rules)
 ├── .gitignore                    # Language/framework-specific
 ├── .agents/
 │   └── skills/                   # Canonical project-specific workflow skills
@@ -108,12 +108,29 @@ Copy these template files from the installed `scaffold-project/templates/` direc
 
 The `devlog-template.md`, `phase-template.md`, and `knowledge-template.md` stay in the bundle. `/end-session`, `/formalize-plan`, and the user create new instances of those by copying and customizing as work progresses.
 
-### Step 2: Write AGENTS.md and CLAUDE.md
+### Step 2: Write AGENTS.md and the CLAUDE.md import stub
 
-Follow this template for `AGENTS.md` — keep it lean (~150 lines). It's the agent's primary instruction file. Then create `CLAUDE.md` as a Claude Code compatibility mirror or short pointer to `AGENTS.md`; if the project already relies heavily on Claude Code, copying the same content into both files is acceptable.
+`AGENTS.md` is **canonical** — the single cross-agent instruction file. Codex reads it directly; keep it lean (~150 lines). `CLAUDE.md` is **never a mirror or a copy**: create it as this import stub, which Claude Code expands at session start (`@path` import is documented Claude Code behavior; a symlink needs admin rights on Windows, the import doesn't):
+
+```markdown
+@AGENTS.md
+
+<!-- Claude-specific rules only below this line. All shared content (including
+     Current Status) lives in AGENTS.md — edit that file, never duplicate here. -->
+```
+
+After scaffolding, verify the import in a Claude Code session with `/context` — `AGENTS.md` must appear under **Memory files**. Two more rules for AGENTS.md content:
+
+- **Machine-specific facts stay tracked and machine-labeled** ("canonical tree on {MACHINE}: `{path}`") — never handled by per-machine edits to tracked files, which conflict on every pull, and never split into untracked per-machine copies.
+- Genuinely Claude-only rules (skill triggers, plan-mode preferences) may go below the stub's comment in CLAUDE.md; anything both agents need goes in AGENTS.md.
+
+Follow this template for `AGENTS.md`:
 
 ```markdown
 # Agent Instructions for {Project Name}
+
+**This file is canonical. CLAUDE.md is an `@AGENTS.md` import stub — edit this file only.**
+<!-- Keep the @ mention backticked: a bare @AGENTS.md in prose is parsed as an import. -->
 
 ## Project Overview
 
@@ -238,7 +255,7 @@ See [implementation-plan.md](docs/implementation-plan.md) for detailed roadmap.
 
 ### Deliverables
 - [x] Project folder structure
-- [x] AGENTS.md and CLAUDE.md with project context
+- [x] AGENTS.md (canonical) + CLAUDE.md import stub
 - [x] Implementation plan
 - [x] Knowledge base seeded
 - [x] Skill templates created
@@ -402,7 +419,7 @@ gh repo create {project-name} --private --source=. --push
 
 ## Rules
 
-1. **AGENTS.md and CLAUDE.md stay lean** — ~150 lines max. Detailed reference goes in knowledge files, not the primary instruction files.
+1. **AGENTS.md stays lean** — ~150 lines max. Detailed reference goes in knowledge files, not the primary instruction file. **CLAUDE.md stays a stub** (`@AGENTS.md` + optional Claude-only rules) — never let shared content accumulate there.
 2. **Knowledge files have YAML frontmatter** — `type`, `keywords`, `related`, `summary` per `docs/SCHEMA.md`.
 3. **Skills have YAML frontmatter** — `name`, `description`, `user-invocable: true`.
 4. **Phase 0 is always complete** — the scaffolding IS Phase 0.
@@ -425,6 +442,7 @@ gh repo create {project-name} --private --source=. --push
 - Don't over-engineer the code skeleton — minimal stubs that show the architecture
 - Don't add skills that aren't relevant — only create skills for workflows the project actually needs
 - Don't skip the implementation plan — it's the backbone of the entire development system
-- Don't make AGENTS.md or CLAUDE.md a wall of text — keep it scannable, link out to knowledge files for depth
+- Don't make AGENTS.md a wall of text — keep it scannable, link out to knowledge files for depth
+- Don't put shared content in CLAUDE.md — it's an `@AGENTS.md` import stub; content there is invisible to Codex
 - Don't ship MCP co-development for projects that don't need it. Pure web apps, single-file scripts, and read-only tools rarely benefit. The cost is real (extra Rust crate, ZMQ dependency, command queue plumbing).
 - Don't pin dependency versions from model memory — training data lags, caret semantics on 0.x versions freeze the stale pin forever, and nothing downstream re-checks freshness. Resolve via the toolchain or the registry (Rule 15).
