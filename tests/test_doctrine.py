@@ -89,3 +89,14 @@ def test_audit_playbooks_uses_scouts_not_explore(repo_root):
     assert 'subagent_type: "scout"' in text
     assert "ROLE:scout" in text
     assert "Delegation follows `/delegate`" in text
+
+
+def test_docs_mention_delegate_and_tier_check(repo_root):
+    readme = (repo_root / "README.md").read_text(encoding="utf-8")
+    assert "`/delegate`" in readme and "`/tier-check`" in readme
+    workflow = (repo_root / "WORKFLOW.md").read_text(encoding="utf-8")
+    assert "scout" in workflow and "worker" in workflow and "check protocol" in workflow
+    install = (repo_root / "INSTALL.md").read_text(encoding="utf-8")
+    assert "<root>/agents/" in install and "CLAUDE_CODE_SUBAGENT_MODEL" in install and "default_subagent_model" in install
+    agents_md = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+    assert "`agents/claude/`" in agents_md and "`skills/delegate/`" in agents_md and "/tier-check" in agents_md

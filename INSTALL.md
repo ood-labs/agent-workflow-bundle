@@ -4,11 +4,11 @@ This document tells an agent how to install the Agent Workflow Bundle into one o
 
 ## Target paths
 
-| Target | Windows root | macOS / Linux root | Skills directory | Playbooks directory |
-|--------|--------------|--------------------|------------------|---------------------|
-| Agent-neutral | `%USERPROFILE%\.agents\` | `~/.agents/` | `<root>/skills/` | `<root>/playbooks/` |
-| Claude Code | `%USERPROFILE%\.claude\` | `~/.claude/` | `<root>/skills/` | `<root>/playbooks/` |
-| Codex | `%USERPROFILE%\.codex\` | `~/.codex/` | `<root>/skills/` | `<root>/playbooks/` |
+| Target | Windows root | macOS / Linux root | Skills directory | Playbooks directory | Agents directory |
+|--------|--------------|--------------------|------------------|---------------------|-------------------|
+| Agent-neutral | `%USERPROFILE%\.agents\` | `~/.agents/` | `<root>/skills/` | `<root>/playbooks/` | `-` |
+| Claude Code | `%USERPROFILE%\.claude\` | `~/.claude/` | `<root>/skills/` | `<root>/playbooks/` | `<root>/agents/` |
+| Codex | `%USERPROFILE%\.codex\` | `~/.codex/` | `<root>/skills/` | `<root>/playbooks/` | `<root>/agents/` |
 
 Install to `.agents` for the portable canonical copy, and mirror to `.claude` and `.codex` when those agents need their own discovery path.
 
@@ -44,8 +44,18 @@ The scripts do not silently overwrite existing skills or playbooks. Use `-Overwr
 2. Create `<root>/skills/` and `<root>/playbooks/` if missing.
 3. Check for conflicts before copying. For each subfolder in `skills/` and each file in `playbooks/`, check whether the same name already exists at the target. If it does, list the conflicts and ask whether to overwrite, skip, or rename.
 4. Copy skills. Each `skills/<skill-name>/` folder copies as a whole subtree to `<root>/skills/<skill-name>/`. The `skills/scaffold-project/templates/` folder travels with the skill.
-5. Copy playbooks. Each file in `playbooks/`, including `INDEX.md`, copies to `<root>/playbooks/`. If `INDEX.md` already exists, merge manually instead of overwriting without review.
-6. Confirm the installed skills, playbooks, and target paths.
+5. Copy agents. `agents/claude/*.md` to `~/.claude/agents/`, `agents/codex/*.toml` to `~/.codex/agents/`. Same conflict rule as skills.
+6. Copy playbooks. Each file in `playbooks/`, including `INDEX.md`, copies to `<root>/playbooks/`. If `INDEX.md` already exists, merge manually instead of overwriting without review.
+7. Confirm the installed skills, playbooks, and target paths.
+
+## Cheap-tier fallback (manual)
+
+The installer prints these and never writes them. Add them so an agent spawned without a named role still lands on the cheap tier:
+
+- Claude Code, `~/.claude/settings.json`: `"env": { "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet" }`
+- Codex, `~/.codex/config.toml`: `[agents]` with `default_subagent_model = "gpt-6-luna"` and `default_subagent_reasoning_effort = "low"`
+
+Then run `/tier-check` in each runner.
 
 ## Updating an installed bundle
 
@@ -133,7 +143,8 @@ Spot-check a skill you know changed in this update — open `<root>/skills/<skil
 - `<root>/settings.json` — never modified by the installer.
 - `<root>/CLAUDE.md`, `<root>/AGENTS.md`, or other personal config at the install root.
 - `<root>/projects/` — your conversation/memory state is untouched.
-- Anything outside `<root>/skills/` and `<root>/playbooks/`.
+- `~/.codex/config.toml` — the installer prints the cheap-tier fallback snippet but never writes it.
+- Anything outside `<root>/skills/`, `<root>/playbooks/`, and `<root>/agents/`.
 
 ### Recovery from a bad update
 
@@ -185,5 +196,6 @@ After install, list the contents of the target directories and confirm:
 - `<root>/playbooks/INDEX.md` exists and lists every playbook file present
 - `<root>/skills/scaffold-project/templates/` has `SCHEMA.md` and 5 template files
 - `<root>/skills/plan-audit/scripts/proof-altitude.py` is present (optional Jev screen; used only when `TYPESAFE_API_KEY` is set, needs Python 3 and nothing else)
+- `<root>/agents/` has `scout` and `worker` for the claude and codex targets
 
 If an agent is already running in another window, restart it if newly installed skills do not appear immediately.

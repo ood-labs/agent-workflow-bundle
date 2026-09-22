@@ -90,6 +90,10 @@ For phases that involve new libraries, multi-week effort, or architectural commi
 
 Applies a best-guess fix to the plan doc for every finding it can — derived fixes (missing pass criteria, unnamed dependencies, corrected version assumptions, mega-phase splits) and judgement calls (dropping an untraceable deliverable, picking a replacement library, covering a spec gap) alike — then reports what it changed, flagging the judgement calls with the alternative so you can revert any in one step. Only genuinely-unguessable findings are left as open questions. Skip for routine sub-phases.
 
+### Model tiers (every stage)
+
+The skills that spawn agents spawn cheap-tier **scouts** (Claude Code `sonnet`, Codex `gpt-6-luna`) to read and report; a slash-goal campaign hands delegable sub-slices to cheap-tier **workers** to implement. The session itself (Fable / Astra) is the only judge: it synthesizes scout reports, and it verifies every worker diff through the **check protocol** (scope diff, tests it ran itself, Jev diff-risk ordering, every hunk read, accept or re-dispatch, max two retries) before `/wrap`. Jev screens at each handoff so the judge reads the risky items first and never auto-applies a low-confidence finding. Doctrine in `/delegate`; proof in `/tier-check`.
+
 ### `/slash-goal` (optional, to run a phase autonomously)
 
 After `/formalize-plan` (and optional `/plan-audit`), if you want one or more phases to run under Claude Code's built-in `"slash goal"` loop instead of driving each sub-phase by hand, run `/slash-goal`. It reads the formalized phase doc(s) and emits a single **completion-condition string** to paste into the `"slash goal"` command (Claude Code v2.1.139+).
@@ -97,6 +101,8 @@ After `/formalize-plan` (and optional `/plan-audit`), if you want one or more ph
 The goal is a **thin pointer**, not a wall of text. The phase doc is the contract: `/formalize-plan` writes it with per-sub-phase pass criteria and an **Autonomy & human-in-the-loop** section that marks where a person is genuinely needed (batched so autonomous stretches stay long) and classifies each pause into one of three gate tiers — **self-serve** (aesthetic/visual checks and the per-sub-phase approval cadence → run the check, log the verdict + screenshot, commit `approval: pending`, continue), **conditional-proceed** (a real decision pre-authorized with a testable rule — "accept the dep if `cargo deny` passes and the license is MIT/Apache, else stop"), and **hard-stop** (the genuinely irreversible or unsettled — git history rewrite, spec edits, a core/upstream fork, a failed pre-authorized condition, an unsettled decision). The human's judgment is spent once, at plan time.
 
 The generated goal then just names the phase, points at its doc, and sets the standing rails: `$start-session` to open, proof-first per the doc, a per-slice `$audit`, close-out via `$end-session`, explicit-paths-only / no `git add -A` / no push, an anti-stall clause so a permission prompt can't freeze the loop, "don't start the next phase," and "stop only for the doc's hard blockers." Because the `"slash goal"` evaluator only judges what's surfaced in the transcript, the doc's proof method must produce transcript-visible evidence. Workflow commands use a `$` prefix (Codex-style), not a slash. The skill returns the goal inline in chat (never a file); you run the command. `/formalize-plan` offers `/slash-goal` as the next step once the Autonomy section is in place.
+
+The goal also points at the phase doc's Delegation section, which says which sub-slices a worker may take.
 
 ### `/start-session`
 

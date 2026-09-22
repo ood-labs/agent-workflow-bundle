@@ -17,12 +17,16 @@ Wear two hats here:
 
 | Path | What it is |
 |------|------------|
-| `skills/<name>/SKILL.md` | One skill each. The source of truth. 17 skills today. |
+| `skills/<name>/SKILL.md` | One skill each. The source of truth. 19 skills today. |
 | `skills/scaffold-project/templates/` | Frontmatter `SCHEMA.md` + 5 templates (devlog, phase, knowledge, lessons, state) used during scaffolding |
 | `skills/plan-audit/scripts/proof-altitude.py` | Optional Jev (TypeSafe) screen of a phase doc's pass criteria; runs only with `TYPESAFE_API_KEY`, stdlib only. Helpers live inside the skill folder because the installer copies only `skills/` |
+| `skills/delegate/` | The model-tiering doctrine skill, with `scripts/jev-screen.py` (Jev screens for finding-triage and diff-risk, JSON on stdin, always exits 0) and `scripts/tier-check.py` (asserts models from transcripts; requires `--expect` and `--main`, exits 1 on mismatch or missing evidence) |
 | `docs/jev-audit.md` | Where else Jev could replace fuzzy judgments in the skills; ranked, with probe results |
 | `playbooks/` | Cross-project architectural patterns; `playbooks/INDEX.md` is the master index |
 | `example-skeleton/` | Minimal illustrative example of what `/scaffold-project` produces (sample, not installed) |
+| `agents/claude/` | `scout.md` and `worker.md`, Claude Code agent definitions (`model: sonnet`), installed to `<root>/agents/` |
+| `agents/codex/` | `scout.toml` and `worker.toml`, Codex agent definitions (`gpt-6-luna`, scout `low` / worker `medium` reasoning effort), installed to `<root>/agents/` |
+| `tests/` | Pytest suite (`python -m pytest tests -q`) that checks agent files, installers, helpers, and the doctrine strings skills must carry |
 | `scripts/install.{ps1,sh}` + OS wrappers | Installers for the agent config roots |
 | `README.md` | Human-facing overview + workflow graph + skill catalog |
 | `WORKFLOW.md` | Full workflow narrative (the authority for the walkthrough below) |
@@ -112,7 +116,7 @@ flowchart TD
 
 ## Skills catalog
 
-**Session management:** `/start-session`, `/checkpoint`, `/wrap`, `/plan-audit`, `/audit`, `/end-session`, `/find-session`, `/formalize-plan`, `/slash-goal`.
+**Session management:** `/start-session`, `/checkpoint`, `/wrap`, `/plan-audit`, `/audit`, `/end-session`, `/find-session`, `/formalize-plan`, `/slash-goal`, `/delegate`, `/tier-check`.
 **Planning / bootstrap / knowledge:** `/research-prompt`, `/spec-draft`, `/scaffold-project`, `/slim-agent-md` (+ `/slim-claude-md` alias), `/lookup`, `/extract-playbook`, `/audit-playbooks`.
 
 See [README.md](README.md) for one-line purposes. The skill's own `SKILL.md` is the detail.
@@ -154,6 +158,7 @@ When you add, rename, or materially change a skill, update **all three** in the 
 - Conventional commits: `feat(<skill>): …`, `fix(<skill>): …`, `docs: …`.
 - Co-author footer only when convention asks for it.
 - `main` has an upstream (`origin` on GitHub). Commit/push only when asked; never `--force`, never `git add -A` (stage explicit paths).
+- Run `python -m pytest tests -q` before every commit; it checks agent files, installers, helpers, and the doctrine strings skills must carry.
 
 ## Conventions & doctrine
 
@@ -169,6 +174,7 @@ These are settled decisions — honor them when editing skills:
 - **Anti-stall:** a goal must never freeze on a permission prompt — auto-approved command forms only; on denial, switch to an allowed equivalent and continue.
 - **Human-in-the-loop is tiered, not blanket-stop:** self-serve (aesthetics, approval cadence → log + continue), conditional-proceed (pre-authorized with a testable rule), hard-stop (irreversible/unsettled). Decided at plan time.
 - **Proof altitude:** every user-facing feature phase needs a pass criterion that is *false unless the experience exists* — visible/behavioral/executing, with vision_eval asserting screenshot content. Readback/log/"artifact exists" can be cleared by a mock. Citing a spec is not verifying against it. This is what `/plan-audit`'s acceptance-bar agent enforces.
+- **Model tiers:** scouts read, workers implement one sub-slice, the session judges, Jev screens. The judge is never a subagent; workers never commit. Doctrine in `/delegate`, proof in `/tier-check`. Spawning Explore or a generic agent for reading is a defect: they inherit the session model.
 
 ## What to avoid
 
