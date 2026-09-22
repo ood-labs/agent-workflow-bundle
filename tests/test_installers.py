@@ -1,7 +1,6 @@
 import os
 import shutil
 import subprocess
-import sys
 import pytest
 
 PWSH = shutil.which("pwsh")
@@ -73,6 +72,29 @@ def test_ps1_installs_agents_per_target(repo_root, tmp_path):
     assert (tmp_path / ".codex/agents/worker.toml").is_file()
     assert not (tmp_path / ".agents/agents").exists()
     assert "Config snippets (not written)" in r.stdout
+    assert "CLAUDE_CODE_SUBAGENT_MODEL" in r.stdout
+    assert 'default_subagent_model = "gpt-6-luna"' in r.stdout
+
+
+@pytest.mark.skipif(PWSH is None, reason="pwsh not on PATH")
+def test_ps1_dry_run_lists_agents_and_writes_nothing(repo_root, tmp_path):
+    r = run_ps1(repo_root, tmp_path, ["-Target", "claude", "-DryRun"])
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert "scout.md" in r.stdout
+    assert "[dry-run]" in r.stdout
+    assert not (tmp_path / ".claude").exists()
+
+
+@pytest.mark.skipif(PWSH is None, reason="pwsh not on PATH")
+def test_ps1_never_touches_settings_or_config(repo_root, tmp_path):
+    (tmp_path / ".claude").mkdir()
+    (tmp_path / ".codex").mkdir()
+    (tmp_path / ".claude/settings.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".codex/config.toml").write_text("model = \"x\"\n", encoding="utf-8")
+    r = run_ps1(repo_root, tmp_path, ["-Target", "all"])
+    assert r.returncode == 0, r.stderr + r.stdout
+    assert (tmp_path / ".claude/settings.json").read_text(encoding="utf-8") == "{}"
+    assert (tmp_path / ".codex/config.toml").read_text(encoding="utf-8") == "model = \"x\"\n"
 
 
 @pytest.mark.skipif(PWSH is None, reason="pwsh not on PATH")
