@@ -153,5 +153,8 @@ def test_cli_refuses_without_expect_or_main(repo_root, tmp_path):
 
 def test_default_project_key_matches_claude_format(repo_root):
     m = load(repo_root)
+    # The real Claude Code key for this repo, derived from an absolute path.
     assert m.default_project_key(r"C:\Standalone\agent-workflow-bundle") == "C--Standalone-agent-workflow-bundle"
-    assert m.default_project_key("/home/u/proj") == "-home-u-proj"
+    # A relative path must be resolved first, not encoded as-is.
+    assert m.default_project_key("proj") == m.default_project_key(os.path.join(os.getcwd(), "proj"))
+    assert m.default_project_key("proj").endswith("-proj")

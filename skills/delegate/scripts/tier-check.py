@@ -161,7 +161,7 @@ def evaluate(scan, expects, main_prefix):
 
 
 def default_project_key(cwd):
-    return re.sub(r"[^A-Za-z0-9]", "-", str(cwd))
+    return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(cwd))
 
 
 def main(argv):
