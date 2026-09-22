@@ -85,6 +85,9 @@ def read_frontmatter(path: pathlib.Path) -> dict:
 import tomllib
 from conftest import read_frontmatter
 
+# Read-only git (log, show, diff) is allowed for both roles; these are not.
+MUTATING = ("git commit", "git add", "git push", "git reset", "git checkout", "git merge", "git rebase", "git tag")
+
 
 def test_claude_scout_is_read_only_sonnet(repo_root):
     fm = read_frontmatter(repo_root / "agents/claude/scout.md")
@@ -93,7 +96,8 @@ def test_claude_scout_is_read_only_sonnet(repo_root):
     tools = {t.strip() for t in fm["tools"].split(",")}
     assert {"Read", "Glob", "Grep"} <= tools
     assert not ({"Edit", "Write", "NotebookEdit"} & tools)
-    assert not any(t.startswith("Bash(git") for t in tools)
+    assert "Bash" not in tools, "unrestricted Bash would allow mutation"
+    assert not any(t.startswith(f"Bash({m}") for m in MUTATING for t in tools)
 
 
 def test_claude_worker_edits_but_never_commits(repo_root):
@@ -103,7 +107,7 @@ def test_claude_worker_edits_but_never_commits(repo_root):
     tools = {t.strip() for t in fm["tools"].split(",")}
     assert {"Read", "Edit", "Write", "Glob", "Grep"} <= tools
     assert "Bash" not in tools, "unrestricted Bash would allow git commit"
-    assert not any(t.startswith("Bash(git") for t in tools)
+    assert not any(t.startswith(f"Bash({m}") for m in MUTATING for t in tools)
 
 
 def test_codex_scout_is_luna_low_read_only(repo_root):
