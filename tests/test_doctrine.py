@@ -81,3 +81,11 @@ def test_start_session_checks_delegation_and_wrap_requires_protocol(repo_root):
     assert "Delegation section" in ss
     _, wrap = skill(repo_root, "wrap")
     assert "check protocol" in wrap
+
+
+def test_audit_playbooks_uses_scouts_not_explore(repo_root):
+    p, text = skill(repo_root, "audit-playbooks")
+    assert "Explore" not in text
+    assert 'subagent_type: "scout"' in text
+    assert "ROLE:scout" in text
+    assert "Delegation follows `/delegate`" in text

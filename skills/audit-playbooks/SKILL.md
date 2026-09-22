@@ -1,6 +1,6 @@
 ---
 name: audit-playbooks
-description: Walk the global playbook library, flag stale entries, optionally spawn Explore agents to verify each playbook's claims against current library docs. Run quarterly or before a major project that depends on a playbook.
+description: Walk the global playbook library, flag stale entries, optionally spawn scouts to verify each playbook's claims against current library docs. Run quarterly or before a major project that depends on a playbook.
 allowed-tools: Agent, Read, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 user-invocable: true
 ---
@@ -25,7 +25,7 @@ This skill complements `/extract-playbook`: extract creates and updates, audit c
 
 **Mode 1: Quick** — only checks `last_verified` dates and INDEX consistency. No external research. Fast (under a minute).
 
-**Mode 2: Deep** — quick checks plus spawns Explore agents to spot-check each playbook's claims against current docs. Slower (5-10 minutes per playbook), more accurate.
+**Mode 2: Deep** — quick checks plus spawns cheap-tier scouts to spot-check each playbook's claims against current docs. Slower (5-10 minutes per playbook), more accurate.
 
 User picks. Default to Quick.
 
@@ -55,7 +55,9 @@ For each playbook:
 
 ### Step 4 (Deep mode only): Library / SDK verification
 
-Spawn one Explore agent per playbook. Each agent gets:
+Delegation follows `/delegate`: scouts read, workers implement inside their slice, the session judges, Jev screens. Spawn one `scout` per playbook — Claude Code: `subagent_type: "scout"`; Codex: spawn the `scout` agent — each prompt starting with `ROLE:scout`.
+
+Each agent gets:
 - The playbook content
 - The `applies_to` list
 - Instruction: verify each major claim in the playbook against current library / SDK / platform docs. Use WebFetch and WebSearch. Flag claims that may be outdated. Cite the doc URL where each claim was verified or contradicted.
