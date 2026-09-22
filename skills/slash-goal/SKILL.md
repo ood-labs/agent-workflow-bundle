@@ -38,7 +38,7 @@ Match the user's ask. One phase, several phases, or the rest of the project — 
 
 ### Step 2: Confirm the phase doc can carry the goal
 
-Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlog). Verify it has: bounded sub-slices with **pass criteria**, the **proof method / testability contract**, and an **Autonomy & human-in-the-loop** section with the gate tiers + pre-authorizations. If any is missing:
+Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlog). Verify it has: bounded sub-slices with **pass criteria**, the **proof method / testability contract**, an **Autonomy & human-in-the-loop** section with the gate tiers + pre-authorizations, and a **Delegation** section naming which sub-slices a worker may take with their allowed files and test commands. If any is missing:
 
 - Prefer to fix the **doc** (or tell the user it needs `/formalize-plan` to add the Autonomy section).
 - If the user already pre-authorized decisions in conversation that the doc doesn't carry, either add them to the doc or, as a stopgap, inline just those one-liners in the goal. Only surface a decision to the user if it's genuinely unsettled and you can't derive it — otherwise make the call, note it, and move on. Don't interrogate the user to author a goal.
@@ -67,7 +67,7 @@ Output **only** the goal, as a single unbroken line inside one fenced code block
 ## Rules
 
 1. **Keep the goal short — the phase doc is the contract.** Reference the doc; don't re-encode sub-slices, pass criteria, or gate detail that lives there. A goal that needs scrolling is a smell.
-2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first, per-slice `$wrap`, delegation per the doc's Delegation section, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
+2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first, per-slice `$wrap`, delegation per the doc's Delegation section with the check protocol before each close, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
 3. **A permission prompt must never halt the loop.** Auto-approved command forms only; on denial, switch to an allowed equivalent and continue. This is the most common way an overnight run dies.
 4. **Gates are decided in the plan.** Self-serve / conditional-proceed / hard-stop and the pre-authorizations belong in the phase doc's Autonomy section; the goal just points there. If a decision is genuinely unsettled, surface it; otherwise make the call and proceed — don't interrogate the user.
 5. **Match the reach to the ask.** Single phase or several — name the span and the stop line.

@@ -18,6 +18,7 @@ DO:
    - Implementation order
    - Verification plan (the proof method / testability contract — how each sub-phase is proven, e.g. tests, MCP readback, capture)
    - **Autonomy & human-in-the-loop** — see below; this is what lets the phase run under `/slash-goal` with minimal intervention
+   - **Delegation** — which sub-slices a worker may take, their allowed files, test command, and retry budget; see below
    - Example agent workflow
    - Dependencies
 

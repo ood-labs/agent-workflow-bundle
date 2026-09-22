@@ -76,7 +76,7 @@ Each agent reports under 800 words, ranked findings, file:line citations where r
 
 ### Step 4: Synthesize and triage
 
-Collect the five reports as findings `{"id","agent","claim","proposed_change","citation"}` and pipe them, with the derived-fix definition below as `doctrine`, to `python <delegate skill base dir>/scripts/jev-screen.py finding-triage`. Read in verdict order (`ASK`, `REVIEW`, `AUTO_APPLY`); `AUTO_APPLY` maps to the derived-fix bucket only after you verify the citation. If the screen prints `skipped:`, bucket by the rubric below unchanged.
+Before bucketing, collect the five reports as findings `{"id","agent","claim","proposed_change","citation"}` and pipe them, with the derived-fix definition below as `doctrine`, to `python <delegate skill base dir>/scripts/jev-screen.py finding-triage`. Read in verdict order (`ASK`, `REVIEW`, `AUTO_APPLY`); `AUTO_APPLY` maps to the derived-fix bucket only after you verify the citation. If the screen prints `skipped:`, bucket by the rubric below unchanged.
 
 Collect the five reports. The default is **resolve everything you can** — apply a best-guess fix to the phase doc for every finding, then report what you did so the user can revert. Sort each finding into one of three buckets:
 

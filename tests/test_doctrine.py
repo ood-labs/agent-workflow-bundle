@@ -1,3 +1,5 @@
+import re
+
 from conftest import read_frontmatter
 
 
@@ -59,7 +61,10 @@ def test_slash_goal_default_goal_points_at_delegation(repo_root):
     goal = text.split("```")[1]                    # the first fenced block is the default goal
     assert "Delegation section" in goal
     assert "\n" not in goal.strip()                # still one unbroken line
-    assert "$wrap" in goal and " $wrap " in goal   # $ tokens still space-flanked
+    for tok in ("$start-session", "$wrap", "$audit", "$end-session"):
+        assert tok in goal, tok
+    for m in re.finditer(r"\$[a-z][a-z-]*", goal):
+        assert m.end() == len(goal) or goal[m.end()].isspace(), f"{m.group(0)} touches punctuation"
 
 
 def test_formalize_plan_and_template_carry_delegation_section(repo_root):
