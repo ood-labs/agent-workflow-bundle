@@ -27,6 +27,14 @@ MODEL = "jev-latest"
 SAFE_FLOOR = 0.80
 BUCKET_CONF_FLOOR = 0.60
 
+
+def _num(value, default):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 BUCKETS = {
     "derived_fix": "Mechanical and unambiguous: missing pass criterion, unnamed dependency, dangling citation, wrong version corrected with evidence, a small safe code fix",
     "judgement_call": "Resolving it requires a choice on the user's behalf: dropping a deliverable, picking a replacement library, adding a sub-phase, restructuring, a design decision",
@@ -91,11 +99,11 @@ def decide_diff(answers, hunks):
     rows = []
     for h in hunks:
         a = answers.get(f"risk_{h['id']}", {})
-        rows.append({"id": h["id"], "file": h.get("file", ""), "needs_close_review": round(float(a.get("noul", 1.0)), 2)})
+        rows.append({"id": h["id"], "file": h.get("file", ""), "needs_close_review": round(_num(a.get("noul"), 1.0), 2)})
     for order, r in enumerate(sorted(rows, key=lambda r: -r["needs_close_review"]), start=1):
         r["order"] = order
     s = answers.get("slice_status", {})
-    return {"slice_status": s.get("choice", "unclear"), "slice_confidence": round(float(s.get("confidence", 0.0)), 2), "rows": rows}
+    return {"slice_status": s.get("choice", "unclear"), "slice_confidence": round(_num(s.get("confidence"), 0.0), 2), "rows": rows}
 
 
 def call_api(key, state, questions, timeout=90):
@@ -122,27 +130,37 @@ def run(mode, doc):
         return {"skipped": f"API HTTP {e.code}"}
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         return {"skipped": f"API unreachable: {e}"}
-    answers = resp.get("answers", {})
-    out = {"usage": resp.get("usage", {})}
-    if mode == "finding-triage":
-        rows = []
-        for f in doc["findings"]:
-            b = answers.get(f"bucket_{f['id']}", {})
-            s = answers.get(f"safe_{f['id']}", {})
-            bucket = b.get("choice", "unclear")
-            conf = float(b.get("confidence", 0.0))
-            safe = float(s.get("noul", 0.0))
-            rows.append({"id": f["id"], "bucket": bucket, "bucket_confidence": round(conf, 2),
-                         "safe_to_auto_apply": round(safe, 2), "verdict": decide_finding(bucket, conf, safe)})
-        out["rows"] = rows
-    else:
-        out.update(decide_diff(answers, doc["hunks"]))
+    try:
+        answers = resp.get("answers", {})
+        out = {"usage": resp.get("usage", {})}
+        if mode == "finding-triage":
+            rows = []
+            for f in doc.get("findings", []):
+                b = answers.get(f"bucket_{f['id']}", {})
+                s = answers.get(f"safe_{f['id']}", {})
+                bucket = b.get("choice", "unclear")
+                conf = _num(b.get("confidence"), 0.0)
+                safe = _num(s.get("noul"), 0.0)
+                rows.append({"id": f["id"], "bucket": bucket, "bucket_confidence": round(conf, 2),
+                             "safe_to_auto_apply": round(safe, 2), "verdict": decide_finding(bucket, conf, safe)})
+            out["rows"] = rows
+        else:
+            out.update(decide_diff(answers, doc.get("hunks", [])))
+    except (KeyError, ValueError, TypeError) as e:
+        return {"skipped": f"bad response or input: {e}"}
     return out
 
 
 def main(argv):
-    if not argv or argv[0] not in ("finding-triage", "diff-risk"):
+    try:
+        sys.stdin.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+    if not argv:
         print(__doc__)
+        return 0
+    if argv[0] not in ("finding-triage", "diff-risk"):
+        print(json.dumps({"skipped": f"unknown mode {argv[0]!r}; use finding-triage or diff-risk"}))
         return 0
     try:
         doc = json.load(sys.stdin)

@@ -62,7 +62,7 @@ def test_cli_skips_on_bad_input(repo_root, monkeypatch):
     assert "skipped" in json.loads(r.stdout)
 
 
-def test_cli_skips_on_api_failure(repo_root, monkeypatch):
+def test_run_skips_on_api_failure(repo_root, monkeypatch):
     m = load_module(repo_root)
     monkeypatch.setenv("TYPESAFE_API_KEY", "x")
 
@@ -85,3 +85,54 @@ def test_run_finding_triage_with_fake_api(repo_root, monkeypatch):
     out = m.run("finding-triage", {"doctrine": "d", "findings": [{"id": "f1", "claim": "c"}]})
     assert out["rows"][0]["verdict"] == "AUTO_APPLY"
     assert out["usage"]["input_tokens"] == 10
+
+
+def test_run_skips_when_finding_lacks_id(repo_root, monkeypatch):
+    m = load_module(repo_root)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+    out = m.run("finding-triage", {"doctrine": "d", "findings": [{"claim": "no id"}]})
+    assert out["skipped"].startswith("bad input")
+
+
+def test_run_diff_risk_without_hunks_key_skips_not_crashes(repo_root, monkeypatch):
+    m = load_module(repo_root)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+
+    def fake(key, state, questions):
+        return {"usage": {}, "answers": {"slice_status": {"choice": "unclear", "confidence": 0.5}}}
+    m.call_api = fake
+    out = m.run("diff-risk", {"slice": {}})
+    assert isinstance(out, dict)
+    assert out["rows"] == [] and out["slice_status"] == "unclear"
+
+
+def test_malformed_api_numbers_degrade_per_row(repo_root, monkeypatch):
+    m = load_module(repo_root)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+
+    def fake(key, state, questions):
+        return {"usage": {}, "answers": {
+            "bucket_f1": {"type": "choice", "choice": "derived_fix", "confidence": None},
+            "safe_f1": {"type": "noul", "noul": "oops"}}}
+    m.call_api = fake
+    out = m.run("finding-triage", {"doctrine": "d", "findings": [{"id": "f1", "claim": "c"}]})
+    assert out["rows"][0]["verdict"] == "REVIEW"
+    assert out["rows"][0]["safe_to_auto_apply"] == 0.0
+
+
+def test_cli_unknown_mode_prints_skipped_json(repo_root):
+    r = subprocess.run([sys.executable, str(repo_root / "skills/delegate/scripts/jev-screen.py"), "nope"],
+                       input="", capture_output=True, text=True)
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert "unknown mode" in out["skipped"]
+
+
+def test_cli_reads_utf8_stdin(repo_root, monkeypatch):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+    payload = json.dumps({"slice": {"pass_criterion": "café — ünïcode"}, "hunks": []}, ensure_ascii=False)
+    r = subprocess.run([sys.executable, str(repo_root / "skills/delegate/scripts/jev-screen.py"), "finding-triage"],
+                       input=payload, capture_output=True, text=True, encoding="utf-8")
+    assert r.returncode == 0
+    out = json.loads(r.stdout)
+    assert "skipped" in out
