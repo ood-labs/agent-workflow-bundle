@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Prove which model each delegated agent ran on, from the runner's own transcripts.
+At least one --expect and a non-empty --main are required; running with nothing to
+verify is a failure, not a pass.
 
   python tier-check.py --runner claude --since 2026-09-22T10:00:00 \
       --expect scout=claude-sonnet- --expect worker=claude-sonnet- --main claude-fable-
@@ -135,6 +137,8 @@ def scan_codex(sessions_dir, since_ts):
 
 def evaluate(scan, expects, main_prefix):
     problems = []
+    if not expects:
+        problems.append("FAIL: no --expect given; nothing to verify")
     for role, prefix in expects.items():
         seen = scan["agents"].get(role)
         if not seen:
@@ -151,11 +155,13 @@ def evaluate(scan, expects, main_prefix):
             bad = [m for m in mains if not m.startswith(main_prefix)]
             if bad:
                 problems.append(f"FAIL main: expected prefix '{main_prefix}', saw {sorted(set(bad))}")
+    else:
+        problems.append("FAIL: no --main given; the session model was not verified")
     return (not problems), problems
 
 
 def default_project_key(cwd):
-    return re.sub(r"[^A-Za-z0-9]", "-", os.path.abspath(cwd))
+    return re.sub(r"[^A-Za-z0-9]", "-", str(cwd))
 
 
 def main(argv):
@@ -176,6 +182,10 @@ def main(argv):
         if not role or not prefix:
             ap.error(f"--expect needs ROLE=PREFIX, got {e!r}")
         expects[role] = prefix
+    if not expects:
+        ap.error("at least one --expect ROLE=PREFIX is required")
+    if not a.main.strip():
+        ap.error("--main is required")
     since_ts = parse_since(a.since)
 
     if a.runner == "claude":

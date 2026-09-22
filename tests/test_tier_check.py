@@ -128,3 +128,30 @@ def test_cli_fails_when_no_evidence_at_all(repo_root, tmp_path):
                        capture_output=True, text=True)
     assert r.returncode == 1
     assert "no transcript" in r.stdout
+
+
+def test_evaluate_fails_with_no_expectations(repo_root):
+    m = load(repo_root)
+    ok, problems = m.evaluate({"main": ["claude-fable-5-1"], "agents": {}}, {}, "claude-fable-")
+    assert not ok and any("--expect" in p for p in problems)
+    ok, problems = m.evaluate({"main": ["claude-fable-5-1"], "agents": {"scout": ["claude-sonnet-5"]}},
+                              {"scout": "claude-sonnet-"}, "")
+    assert not ok and any("--main" in p for p in problems)
+
+
+def test_cli_refuses_without_expect_or_main(repo_root, tmp_path):
+    base = [sys.executable, str(repo_root / "skills/delegate/scripts/tier-check.py"), "--runner", "claude",
+            "--since", "1970-01-01T00:00:00", "--claude-projects-dir", str(tmp_path / "projects"),
+            "--project-key", "C--repo"]
+    no_expect_no_main = subprocess.run(base, capture_output=True, text=True)
+    assert no_expect_no_main.returncode != 0
+    assert "--expect" in no_expect_no_main.stderr
+    no_main = subprocess.run(base + ["--expect", "scout=claude-sonnet-"], capture_output=True, text=True)
+    assert no_main.returncode != 0
+    assert "--main" in no_main.stderr
+
+
+def test_default_project_key_matches_claude_format(repo_root):
+    m = load(repo_root)
+    assert m.default_project_key(r"C:\Standalone\agent-workflow-bundle") == "C--Standalone-agent-workflow-bundle"
+    assert m.default_project_key("/home/u/proj") == "-home-u-proj"
