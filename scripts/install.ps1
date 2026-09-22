@@ -11,6 +11,16 @@ $ErrorActionPreference = "Stop"
 $bundleRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $skillsSource = Join-Path $bundleRoot "skills"
 $playbooksSource = Join-Path $bundleRoot "playbooks"
+$agentsSource = Join-Path $bundleRoot "agents"
+
+function Get-AgentsSubdir {
+    param([string]$TargetName)
+    switch ($TargetName) {
+        "claude" { return "claude" }
+        "codex"  { return "codex" }
+        default  { return $null }
+    }
+}
 
 if (-not (Test-Path -LiteralPath $skillsSource)) {
     throw "Missing skills source directory: $skillsSource"
@@ -126,6 +136,14 @@ if (-not $Overwrite -and -not $DryRun) {
                 $conflicts += $dest
             }
         }
+
+        $sub = Get-AgentsSubdir $targetInfo.Name
+        if ($sub -and (Test-Path -LiteralPath (Join-Path $agentsSource $sub))) {
+            foreach ($agent in Get-ChildItem -LiteralPath (Join-Path $agentsSource $sub) -File) {
+                $dest = Join-Path (Join-Path $targetRoot "agents") $agent.Name
+                if (Test-Path -LiteralPath $dest) { $conflicts += $dest }
+            }
+        }
     }
 
     if ($conflicts.Count -gt 0) {
@@ -167,11 +185,22 @@ foreach ($targetInfo in $targetInfos) {
             -DryRun $DryRun
     }
 
+    $sub = Get-AgentsSubdir $targetName
+    if ($sub -and (Test-Path -LiteralPath (Join-Path $agentsSource $sub))) {
+        $agentsDest = Join-Path $targetRoot "agents"
+        if ($DryRun) { Write-Host "[dry-run] ensure $agentsDest" }
+        else { New-Item -ItemType Directory -Force -Path $agentsDest | Out-Null }
+        foreach ($agent in Get-ChildItem -LiteralPath (Join-Path $agentsSource $sub) -File) {
+            Copy-FileItem -Source $agent.FullName -Destination (Join-Path $agentsDest $agent.Name) -Overwrite $Overwrite -DryRun $DryRun
+        }
+    }
+
     $installed += [pscustomobject]@{
         Target = $targetName
         Root = $targetRoot
         Skills = $skillsDest
         Playbooks = $playbooksDest
+        Agents = $(if ($sub) { Join-Path $targetRoot "agents" } else { "-" })
     }
 }
 
@@ -186,3 +215,14 @@ if (-not $DryRun) {
         Write-Host "  /$_"
     }
 }
+
+Write-Host ""
+Write-Host "Config snippets (not written) - add by hand so unnamed subagents also land on the cheap tier:"
+Write-Host ""
+Write-Host '  Claude Code  ~/.claude/settings.json'
+Write-Host '    "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet" }'
+Write-Host ""
+Write-Host '  Codex        ~/.codex/config.toml'
+Write-Host '    [agents]'
+Write-Host '    default_subagent_model = "gpt-6-luna"'
+Write-Host '    default_subagent_reasoning_effort = "low"'

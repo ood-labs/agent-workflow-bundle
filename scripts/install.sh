@@ -19,6 +19,16 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 bundle_root="$(cd -- "$script_dir/.." && pwd)"
 skills_source="$bundle_root/skills"
 playbooks_source="$bundle_root/playbooks"
+agents_source="$bundle_root/agents"
+
+# Which agent-definition subfolder a target consumes. The agent-neutral root has no runtime.
+agents_subdir_for() {
+  case "$1" in
+    claude) echo "claude" ;;
+    codex)  echo "codex" ;;
+    *)      echo "" ;;
+  esac
+}
 
 copy_dir() {
   local source="$1"
@@ -90,6 +100,15 @@ if [[ "$overwrite" != "1" && "$dry_run" != "1" ]]; then
       destination="$playbooks_dest/$(basename "$playbook")"
       [[ ! -e "$destination" ]] || conflicts+=("$destination")
     done
+
+    sub="$(agents_subdir_for "$name")"
+    if [[ -n "$sub" && -d "$agents_source/$sub" ]]; then
+      for agent in "$agents_source/$sub"/*; do
+        [[ -f "$agent" ]] || continue
+        destination="$root/agents/$(basename "$agent")"
+        [[ ! -e "$destination" ]] || conflicts+=("$destination")
+      done
+    fi
   done
 
   if (( ${#conflicts[@]} > 0 )); then
@@ -121,6 +140,21 @@ for name in "${targets[@]}"; do
     copy_file "$playbook" "$playbooks_dest/$(basename "$playbook")"
   done
 
+  sub="$(agents_subdir_for "$name")"
+  if [[ -n "$sub" && -d "$agents_source/$sub" ]]; then
+    agents_dest="$root/agents"
+    if [[ "$dry_run" == "1" ]]; then
+      echo "[dry-run] ensure $agents_dest"
+    else
+      mkdir -p -- "$agents_dest"
+    fi
+    for agent in "$agents_source/$sub"/*; do
+      [[ -f "$agent" ]] || continue
+      copy_file "$agent" "$agents_dest/$(basename "$agent")"
+    done
+    echo "  agents: $agents_dest"
+  fi
+
   echo "Installed target: $name"
   echo "  skills: $skills_dest"
   echo "  playbooks: $playbooks_dest"
@@ -131,3 +165,16 @@ for skill in "$skills_source"/*; do
   [[ -d "$skill" ]] || continue
   echo "  /$(basename "$skill")"
 done
+
+cat <<'EOF'
+
+Config snippets (not written) - add by hand so unnamed subagents also land on the cheap tier:
+
+  Claude Code  ~/.claude/settings.json
+    "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet" }
+
+  Codex        ~/.codex/config.toml
+    [agents]
+    default_subagent_model = "gpt-6-luna"
+    default_subagent_reasoning_effort = "low"
+EOF
