@@ -48,7 +48,7 @@ Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlo
 Write a terse, doc-referencing condition — a few sentences, emitted as **one unbroken line** (no hard line breaks inside it). Default shape (Codex `$` form):
 
 ```
-Complete <Phase N> from current HEAD. Open with $start-session and use docs/phases/<doc>.md as the contract with the latest devlog as current state. Do not start <next phase>. Execute end-to-end, proof-first, with focused tests and the phase's proof artifact. Close each sub-slice with $wrap and run $audit then a final $end-session at phase end. Stage explicit paths only; no git add -A, no push. Never let a permission prompt stall the loop — use auto-approved command forms and, on denial, switch to an allowed equivalent and continue. Stop only for a real hard blocker.
+Complete <Phase N> from current HEAD. Open with $start-session and use docs/phases/<doc>.md as the contract with the latest devlog as current state. Do not start <next phase>. Execute end-to-end, proof-first, with focused tests and the phase's proof artifact. Delegate sub-slices per the doc's Delegation section and verify each per the delegate check protocol before closing it. Close each sub-slice with $wrap and run $audit then a final $end-session at phase end. Stage explicit paths only; no git add -A, no push. Never let a permission prompt stall the loop — use auto-approved command forms and, on denial, switch to an allowed equivalent and continue. Stop only for a real hard blocker.
 ```
 
 Drop anything the phase doc already states — don't re-encode sub-slice order, pass criteria, or the per-slice ritual, which the doc and the wrap command already own. The rails below stay regardless of length.
@@ -58,7 +58,7 @@ Drop anything the phase doc already states — don't re-encode sub-slice order, 
 - **Default (unspecified) → Codex `$` form.** Write `$start-session`, `$wrap`, `$audit`, `$end-session`. In this form **every `$` token MUST be flanked by spaces** — never put a comma, period, semicolon, or any other character directly against it (`$wrap,` / `$audit.` / `$end-session;` won't parse). Phrase so each token is *followed by a space and a word* (`... with $wrap and run $audit then a final $end-session at phase end`), not by punctuation.
 - **Claude Code (only when the user asks — e.g. "for claude", "claude format", "slashes") → `/` form.** Write `/start-session`, `/wrap`, `/audit`, `/end-session`. Punctuation adjacency is fine here (`/wrap;` parses).
 
-The non-negotiable rails: open with the session-start command, the phase doc as the contract, "don't start the next phase," proof-first, per-slice close with the wrap command, audit + end-session at phase end, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
+The non-negotiable rails: open with the session-start command, the phase doc as the contract, "don't start the next phase," proof-first, per-slice close with the wrap command, delegation per the Delegation section with the check protocol, audit + end-session at phase end, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
 
 ### Step 4: Return the goal — and nothing else
 
@@ -67,7 +67,7 @@ Output **only** the goal, as a single unbroken line inside one fenced code block
 ## Rules
 
 1. **Keep the goal short — the phase doc is the contract.** Reference the doc; don't re-encode sub-slices, pass criteria, or gate detail that lives there. A goal that needs scrolling is a smell.
-2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first, per-slice `$wrap`, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
+2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first, per-slice `$wrap`, delegation per the doc's Delegation section, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
 3. **A permission prompt must never halt the loop.** Auto-approved command forms only; on denial, switch to an allowed equivalent and continue. This is the most common way an overnight run dies.
 4. **Gates are decided in the plan.** Self-serve / conditional-proceed / hard-stop and the pre-authorizations belong in the phase doc's Autonomy section; the goal just points there. If a decision is genuinely unsettled, surface it; otherwise make the call and proceed — don't interrogate the user.
 5. **Match the reach to the ask.** Single phase or several — name the span and the stop line.

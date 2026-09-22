@@ -31,9 +31,9 @@ Look for whichever of these the project has, in this order:
 
 Skim each. The agent prompts will reference them by absolute path.
 
-## Step 3: Spawn three Explore agents in parallel
+## Step 3: Spawn three scouts in parallel
 
-Send a single message with three Agent tool calls (subagent_type=Explore). Each agent gets a self-contained prompt: what changed, where to look, what to check, and the relevant instruction-file doctrine summary.
+Delegation follows `/delegate`: scouts read, workers implement inside their slice, the session judges, Jev screens. Send a single message with three Agent tool calls, each `subagent_type: "scout"` (Codex: spawn the `scout` agent three times), each prompt starting with `ROLE:scout`. Each agent gets a self-contained prompt: what changed, where to look, what to check, and the relevant instruction-file doctrine summary.
 
 **Code agent** — correctness, safety, resource lifetimes, Drop ordering, thread safety, error handling, edge cases, unsafe blocks, FFI invariants. Cite file:line. Categorize: ship-blocking / should-fix-now / nice-to-have. Explicitly call out things done RIGHT so the synthesis doesn't over-correct.
 
@@ -43,9 +43,11 @@ Send a single message with three Agent tool calls (subagent_type=Explore). Each 
 
 Each agent should report under 800 words, ranked findings, file:line citations. Tell them to use WebFetch / WebSearch if a finding depends on external knowledge (e.g., "is this driver behavior documented?", "did this library API change in the latest release?").
 
-## Step 4: Synthesize and triage
+## Step 4: Screen, then synthesize and triage
 
-Collect the three reports. Rank everything as:
+Collect the three reports as findings `{"id","agent","claim","proposed_change","citation"}` and pipe them, with the apply-now criterion below as `doctrine`, to `python <delegate skill base dir>/scripts/jev-screen.py finding-triage`. Read in verdict order: `ASK`, then `REVIEW`, then `AUTO_APPLY`. Verify every citation before acting; never apply a finding whose `safe_to_auto_apply` is below 0.8. If the screen prints `skipped:`, use the ranking below unchanged.
+
+Rank everything as:
 
 - **Ship-blocking**: bugs that make the work incorrect. Apply now.
 - **Must-fix-now (regression-prevention)**: missing tests for a fixed bug; style violations the project enforces; plan-doc inconsistencies. Apply now.
@@ -86,7 +88,7 @@ Then stop. Do not commit. Do not run /end-session. Wait for the user's next move
 ## Important
 
 - This command runs whenever asked, including mid-session. It's not a phase gate.
-- Three parallel agents in ONE message — do not serialize them.
+- Three scouts in ONE message — never Explore or a generic agent, which inherit the session model — do not serialize them.
 - Trust the agents' verdicts but verify their proposed file:line citations before acting.
 - If the work being audited is committed, fixes go into a NEW commit (or stay uncommitted for the user to bundle), never `--amend`.
 - If the audit finds the work is fundamentally wrong, stop and surface immediately. Don't try to "fix" a wrong-architecture finding.

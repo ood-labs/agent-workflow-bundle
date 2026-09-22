@@ -29,6 +29,8 @@ DO:
 
    A short `/slash-goal` then just points at this doc instead of re-encoding it.
 
+   The **Delegation** section decides what the cheap tier may build (doctrine: `/delegate`). For each sub-slice write: **delegable** or **judge-only**; for a delegable slice, the **allowed files** it may touch, the **test command** that proves its pass criterion, and the **retry budget** (default 2). Default delegable: any slice whose pass criterion is a test or an executing check the worker can run itself. Judge-only: anything touching the spec, instruction files, git, an unsettled decision, or a criterion that needs a human eye. A delegable slice without allowed files and a test command is a plan defect.
+
    **Make the governing spec the acceptance bar, not a citation.** If the phase names a governing spec section, the pass criteria must be at least as strong as that section's requirements — the result will be checked against the phase doc, so the phase doc must not be a weaker bar than the spec. Trace each governing-spec requirement to a criterion that enforces it. Citing §X.Y in the Overview is not the same as verifying against it.
 
    **Every claim about the codebase is resolved, not remembered.** A plan is read later as fact, so anything in it that is merely plausible becomes a measurement nobody re-checks. Before writing a claim about the existing tree, resolve it this session:

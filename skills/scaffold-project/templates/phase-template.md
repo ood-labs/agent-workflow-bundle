@@ -47,6 +47,19 @@ Implementation specifics, API designs, code patterns.
 - Library / SDK: __LIB__ version __VERSION__
 - Prior phase: __PHASE__
 
+## Autonomy & human-in-the-loop
+
+- Human-intervention points: __LIST__
+- Gate tiers: self-serve __LIST__ / conditional-proceed __LIST__ / hard-stop __LIST__
+- Pre-authorizations: __LIST__
+
+## Delegation
+
+| Sub-phase | Delegable? | Allowed files | Test command | Retry budget |
+|-----------|------------|---------------|--------------|--------------|
+| __N__a | delegable / judge-only | `path/one`, `path/two` | `__CMD__` | 2 |
+| __N__b | delegable / judge-only | | | |
+
 ## Success Criteria
 
 - [ ] Testable criterion

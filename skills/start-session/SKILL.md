@@ -21,6 +21,7 @@ PLANNING AUDIT: Before starting any work, audit the next task for plan completen
 - Pass criteria or definition-of-done is stated
 - Dependencies and decisions are resolved (no open D-numbered questions blocking the work)
 - Sub-phase decomposition exists if the work spans more than a single sitting
+- If the phase will run under a goal, the phase doc has a Delegation section naming which sub-slices a worker may take, their allowed files and test commands (doctrine: `/delegate`)
 
 If anything is unplanned, vague, or has unresolved decisions, STOP and enter plan mode first. Draft a plan, surface the open questions, and align before coding. For multi-week or multi-sub-phase work, suggest the user run `/plan-audit` (three parallel Explore agents: spec-alignment / toolchain-feasibility / sub-phase decomposition). The pattern caught 15 plan-level issues on Spike 5 before any code was written. Only proceed to implementation once the plan is concrete.
 

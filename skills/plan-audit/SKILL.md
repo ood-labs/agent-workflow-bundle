@@ -50,9 +50,9 @@ It extracts every pass criterion (`**Verification**:` / `**Pass criterion**:` li
 
 Paste the table verbatim into the acceptance-bar agent's prompt in Step 3. It treats REWRITE rows as derived fixes it must resolve and READ rows as criteria to examine first, and still applies its own rubric to everything, including OK rows — Jev screens, the agent decides. If the script prints `skipped: <reason>` (no key, network down, no criteria found) continue without it; the prose rubric in Step 3 is the fallback and the audit is not blocked. Never write the key into any file.
 
-### Step 3: Spawn five Explore agents in parallel
+### Step 3: Spawn five scouts in parallel
 
-Send a single message with five Agent tool calls (`subagent_type=Explore`). Each agent gets a self-contained prompt: which plan to audit, what to check, the doctrine summary, and what shape the report should take.
+Delegation follows `/delegate`: scouts read, workers implement inside their slice, the session judges, Jev screens. Send a single message with five Agent tool calls, each `subagent_type: "scout"` (Codex: spawn the `scout` agent five times), each prompt starting with `ROLE:scout`. Each agent gets a self-contained prompt: which plan to audit, what to check, the doctrine summary, and what shape the report should take.
 
 **Spec-alignment agent**: does the plan deliver what the spec, research, and prior conversation say is needed — and are the pass criteria as strong as the spec? Trace each major deliverable back to a spec section, research finding, or design decision. Flag features with no traceability and spec areas the plan should cover but doesn't. Then go further: for the spec section the plan names as **governing**, check that each requirement in it maps to an enforceable pass criterion. Citing a spec is not verifying against it — flag any place where a pass criterion could pass while the governing spec requirement stays unmet (the phase doc has become a lower bar than the spec it cites). Cite §X.Y.
 
@@ -60,7 +60,7 @@ Send a single message with five Agent tool calls (`subagent_type=Explore`). Each
 
 **Toolchain-feasibility agent**: do the libraries, APIs, SDKs, and tools the plan assumes exist and behave as the plan assumes? Check version compatibility against current platform support matrices. Check recent API changes (breaking changes in the last 6-12 months). Check whether real-world performance numbers in the plan are achievable (search for benchmarks, GitHub issues, vendor docs). Use WebFetch/WebSearch when the plan rests on a vendor claim. Flag any "this should work" that isn't backed by evidence.
 
-**Sub-phase decomposition agent**: is the work decomposed so each sub-phase can be verified independently? Are dependencies between sub-phases explicit? Hidden ordering constraints? Is each sub-phase shippable in 1-2 sittings (1-3 days work)? Flag mega-phases (>1 week of work) that should be split. Flag dependencies that aren't named. Flag sub-phases without pass criteria.
+**Sub-phase decomposition agent**: is the work decomposed so each sub-phase can be verified independently? Are dependencies between sub-phases explicit? Hidden ordering constraints? Is each sub-phase shippable in 1-2 sittings (1-3 days work)? Flag mega-phases (>1 week of work) that should be split. Flag dependencies that aren't named. Flag sub-phases without pass criteria. Also read the plan's **Delegation section**: flag any sub-slice marked delegable that lacks an allowed-files list or a test command, and flag a delegable slice whose pass criterion a worker cannot run itself.
 
 **In-repo truth / reuse agent**: is every claim the plan makes *about this codebase* actually true, and does the work it specifies already exist? The toolchain agent checks external libraries; this one checks the repo itself, and it is the check that catches a plan which is internally coherent and factually wrong. For the plan under audit:
 
@@ -75,6 +75,8 @@ Report each finding as: the plan's claim, the verified reality, the `file:line` 
 Each agent reports under 800 words, ranked findings, file:line citations where relevant.
 
 ### Step 4: Synthesize and triage
+
+Collect the five reports as findings `{"id","agent","claim","proposed_change","citation"}` and pipe them, with the derived-fix definition below as `doctrine`, to `python <delegate skill base dir>/scripts/jev-screen.py finding-triage`. Read in verdict order (`ASK`, `REVIEW`, `AUTO_APPLY`); `AUTO_APPLY` maps to the derived-fix bucket only after you verify the citation. If the screen prints `skipped:`, bucket by the rubric below unchanged.
 
 Collect the five reports. The default is **resolve everything you can** — apply a best-guess fix to the phase doc for every finding, then report what you did so the user can revert. Sort each finding into one of three buckets:
 
@@ -141,7 +143,7 @@ If there are no open questions, the plan is READY — the user reviews the judge
 
 ## Rules
 
-1. **Five parallel agents in ONE message.** Do not serialize them.
+1. **Five scouts in ONE message — never Explore, which inherits the session model.** Do not serialize them.
 2. **Each agent gets a self-contained prompt.** It hasn't seen the conversation.
 3. **Trust but verify agent citations.** Spot-check before applying a fix.
 4. **Fix everything you can; flag the judgement calls.** Apply a best-guess resolution for every finding, including scope gaps and library/approach choices. Make the call, write it into the plan, and flag it in the report with the alternative so the user can revert. Only leave a finding unfixed when no defensible guess exists.
