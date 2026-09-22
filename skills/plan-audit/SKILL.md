@@ -38,13 +38,25 @@ Read in order:
 6. `AGENTS.md` and/or `CLAUDE.md` for project doctrine
 7. Recent devlogs from the prior phase (the just-shipped work informs what's realistic next)
 
+### Step 2b: Optional Jev proof-altitude screen
+
+If `TYPESAFE_API_KEY` is set in the environment, run the helper that ships with this skill before spawning the agents:
+
+```
+python <this skill's base directory>/scripts/proof-altitude.py docs/phases/<doc>.md
+```
+
+It extracts every pass criterion (`**Verification**:` / `**Pass criterion**:` lines and the bullets under Success/Pass/Acceptance Criteria or Verification Plan headings), sends one batched request to Jev (TypeSafe System One), and prints a verdict per criterion: **REWRITE** (a stub could clear it, or it proves nothing visible or behavioral on a user-facing phase), **READ** (Jev is unsure about the altitude; needs a human-grade read), or **OK**. Add `--user-facing no` for a substrate-only phase so readback criteria are not penalised. Standard library only; no install.
+
+Paste the table verbatim into the acceptance-bar agent's prompt in Step 3. It treats REWRITE rows as derived fixes it must resolve and READ rows as criteria to examine first, and still applies its own rubric to everything, including OK rows — Jev screens, the agent decides. If the script prints `skipped: <reason>` (no key, network down, no criteria found) continue without it; the prose rubric in Step 3 is the fallback and the audit is not blocked. Never write the key into any file.
+
 ### Step 3: Spawn five Explore agents in parallel
 
 Send a single message with five Agent tool calls (`subagent_type=Explore`). Each agent gets a self-contained prompt: which plan to audit, what to check, the doctrine summary, and what shape the report should take.
 
 **Spec-alignment agent**: does the plan deliver what the spec, research, and prior conversation say is needed — and are the pass criteria as strong as the spec? Trace each major deliverable back to a spec section, research finding, or design decision. Flag features with no traceability and spec areas the plan should cover but doesn't. Then go further: for the spec section the plan names as **governing**, check that each requirement in it maps to an enforceable pass criterion. Citing a spec is not verifying against it — flag any place where a pass criterion could pass while the governing spec requirement stays unmet (the phase doc has become a lower bar than the spec it cites). Cite §X.Y.
 
-**Acceptance-bar / proof-altitude agent**: could a mock satisfy this plan? For each sub-phase's pass criterion ask: *could a model-only, stubbed, or placeholder build clear it?* Criteria are too low when they measure a proxy layer (MCP/readback returns the right JSON, a log line, an artifact file exists, a screenshot was captured) instead of the layer where the feature's value lives (a human can SEE the thing, can DO the action, or it EXECUTES and the output changes). Specifically flag: (1) any user-facing feature with no criterion that is **false unless the experience exists** — at least one visible/behavioral/executing gate is mandatory; (2) "screenshot proof" with no assertion on what the image must contain (require a vision_eval-style content assertion); (3) features whose only evidence is readback; (4) a phase that delivers only substrate (a "Model", "Boundary", or "foundation" phase) without saying plainly that it delivers nothing visible or executable yet, and without a named companion phase for the user-facing/executing part — so "substrate done" can't be reported as "feature done." This is the check that catches a green-all-proofs build that's a placeholder the moment you open it.
+**Acceptance-bar / proof-altitude agent**: could a mock satisfy this plan? For each sub-phase's pass criterion ask: *could a model-only, stubbed, or placeholder build clear it?* Criteria are too low when they measure a proxy layer (MCP/readback returns the right JSON, a log line, an artifact file exists, a screenshot was captured) instead of the layer where the feature's value lives (a human can SEE the thing, can DO the action, or it EXECUTES and the output changes). Specifically flag: (1) any user-facing feature with no criterion that is **false unless the experience exists** — at least one visible/behavioral/executing gate is mandatory; (2) "screenshot proof" with no assertion on what the image must contain (require a vision_eval-style content assertion); (3) features whose only evidence is readback; (4) a phase that delivers only substrate (a "Model", "Boundary", or "foundation" phase) without saying plainly that it delivers nothing visible or executable yet, and without a named companion phase for the user-facing/executing part — so "substrate done" can't be reported as "feature done." This is the check that catches a green-all-proofs build that's a placeholder the moment you open it. If Step 2b produced a Jev table, include it in this agent's prompt: REWRITE rows are findings it must resolve, READ rows are where to start reading; OK rows still get the rubric above.
 
 **Toolchain-feasibility agent**: do the libraries, APIs, SDKs, and tools the plan assumes exist and behave as the plan assumes? Check version compatibility against current platform support matrices. Check recent API changes (breaking changes in the last 6-12 months). Check whether real-world performance numbers in the plan are achievable (search for benchmarks, GitHub issues, vendor docs). Use WebFetch/WebSearch when the plan rests on a vendor claim. Flag any "this should work" that isn't backed by evidence.
 
@@ -137,6 +149,7 @@ If there are no open questions, the plan is READY — the user reviews the judge
 6. **Don't write code.** This skill revises the plan doc only.
 7. **Don't auto-commit.** Apply fixes to the working tree and stop. The user reviews the judgement calls, then bundles and commits.
 8. **Don't run if the plan looks routine.** A 1-day sub-phase doesn't need a plan audit. The skill is for substantial commitments.
+9. **Jev is optional and only screens.** The proof-altitude helper runs only when `TYPESAFE_API_KEY` is set, never blocks the audit, and never edits the plan. The acceptance-bar agent owns every fix.
 
 ## What NOT to Do
 

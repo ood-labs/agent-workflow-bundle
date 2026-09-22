@@ -84,7 +84,7 @@ After plan-mode planning, formalize the plan into project docs. Writes `docs/pha
 
 For phases that involve new libraries, multi-week effort, or architectural commitments, run `/plan-audit` after `/formalize-plan` and before `/start-session`. Four parallel Explore agents check:
 - Spec alignment: does the plan deliver what the spec / research says is needed, and are the pass criteria as strong as the governing spec section (citing a spec is not verifying against it)?
-- Acceptance-bar / proof-altitude: could a mock satisfy these pass criteria? Flags any user-facing feature whose criteria are all readback / log / "artifact exists" / "screenshot captured" with no visible/behavioral/executing gate that's false unless the experience exists — the failure mode where a placeholder build passes every proof green.
+- Acceptance-bar / proof-altitude: could a mock satisfy these pass criteria? Flags any user-facing feature whose criteria are all readback / log / "artifact exists" / "screenshot captured" with no visible/behavioral/executing gate that's false unless the experience exists — the failure mode where a placeholder build passes every proof green. If `TYPESAFE_API_KEY` is set, the skill first runs its bundled `scripts/proof-altitude.py`, which asks Jev (TypeSafe System One) for a calibrated mock-can-pass probability and altitude score per criterion and hands the REWRITE / READ / OK table to this agent. Without the key it silently falls back to the prose rubric.
 - Toolchain feasibility: do the libraries / APIs exist and behave as the plan assumes?
 - Sub-phase decomposition: are sub-phases independently verifiable, dependencies explicit?
 

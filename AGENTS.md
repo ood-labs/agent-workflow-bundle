@@ -19,6 +19,8 @@ Wear two hats here:
 |------|------------|
 | `skills/<name>/SKILL.md` | One skill each. The source of truth. 17 skills today. |
 | `skills/scaffold-project/templates/` | Frontmatter `SCHEMA.md` + 5 templates (devlog, phase, knowledge, lessons, state) used during scaffolding |
+| `skills/plan-audit/scripts/proof-altitude.py` | Optional Jev (TypeSafe) screen of a phase doc's pass criteria; runs only with `TYPESAFE_API_KEY`, stdlib only. Helpers live inside the skill folder because the installer copies only `skills/` |
+| `docs/jev-audit.md` | Where else Jev could replace fuzzy judgments in the skills; ranked, with probe results |
 | `playbooks/` | Cross-project architectural patterns; `playbooks/INDEX.md` is the master index |
 | `example-skeleton/` | Minimal illustrative example of what `/scaffold-project` produces (sample, not installed) |
 | `scripts/install.{ps1,sh}` + OS wrappers | Installers for the agent config roots |

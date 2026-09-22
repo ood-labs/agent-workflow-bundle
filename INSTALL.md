@@ -184,5 +184,6 @@ After install, list the contents of the target directories and confirm:
 - Each skill folder is present at `<root>/skills/`
 - `<root>/playbooks/INDEX.md` exists and lists every playbook file present
 - `<root>/skills/scaffold-project/templates/` has `SCHEMA.md` and 5 template files
+- `<root>/skills/plan-audit/scripts/proof-altitude.py` is present (optional Jev screen; used only when `TYPESAFE_API_KEY` is set, needs Python 3 and nothing else)
 
 If an agent is already running in another window, restart it if newly installed skills do not appear immediately.
