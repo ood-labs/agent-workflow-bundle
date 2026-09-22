@@ -520,7 +520,7 @@ git commit -m "feat(install): copy scout/worker agent definitions per runner, pr
 - Create: `tests/test_jev_screen.py`
 
 **Interfaces:**
-- Produces CLI: `python jev-screen.py <finding-triage|diff-risk> [--json]` reading a JSON document on stdin.
+- Produces CLI: `python jev-screen.py <finding-triage|diff-risk>` reading a JSON document on stdin; output is always JSON.
   - `finding-triage` input: `{"doctrine": "<apply-now criterion text>", "findings": [{"id": "f1", "agent": "...", "claim": "...", "proposed_change": "...", "citation": "..."}]}`
   - `diff-risk` input: `{"slice": {"id": "4.1b", "pass_criterion": "...", "allowed_files": [...]}, "hunks": [{"id": "h1", "file": "...", "summary": "..."}]}`
 - Produces output (always exit 0): either `{"skipped": "<reason>"}` or, for finding-triage, `{"usage": {...}, "rows": [{"id", "bucket", "bucket_confidence", "safe_to_auto_apply", "verdict"}]}` with `verdict` in `AUTO_APPLY | REVIEW | ASK`; for diff-risk, `{"usage": {...}, "slice_status": "...", "slice_confidence": 0.0, "rows": [{"id", "file", "needs_close_review", "order"}]}` where `order` is 1-based descending by `needs_close_review`.
@@ -813,8 +813,8 @@ git commit -m "feat(delegate): jev-screen helper with finding-triage and diff-ri
   `python tier-check.py --runner claude --since <ISO8601> --expect scout=claude-sonnet- --expect worker=claude-sonnet- --main claude-fable- [--claude-projects-dir DIR] [--project-key KEY] [--json]`
   `python tier-check.py --runner codex --since <ISO8601> --expect scout=gpt-6-luna --expect worker=gpt-6-luna --main gpt-6-astra [--codex-sessions-dir DIR] [--json]`
 - `--expect NAME=PREFIX` may repeat. Match is prefix on the model string.
-- Exit 0 only when every expected agent has at least one transcript newer than `--since` whose every model string matches its prefix AND the main/parent model matches `--main`. Exit 1 on any mismatch or missing evidence, printing one `FAIL` line per problem with the model actually seen.
-- Claude evidence: files `<projects_dir>/<project_key>/*/subagents/agent-*.jsonl` with mtime >= since; the agent's role is identified by the `subagent_type` in the parent transcript's `Agent` tool_use whose `agentId` matches the file name; fallback: the first user line of the subagent file must contain `ROLE:<name>` (the `/tier-check` skill puts that marker in each prompt so identification never depends on the parent transcript format).
+- Exit 0 only when every expected agent has at least one transcript newer than `--since` whose every model string matches its prefix AND the main/parent model matches `--main`. Exit 1 on any mismatch or missing evidence, printing one `FAIL` line per problem with the model actually seen. **At least one `--expect` and a non-empty `--main` are required: running with nothing to verify is a failure, not a pass.**
+- Claude evidence: files `<projects_dir>/<project_key>/*/subagents/agent-*.jsonl` with mtime >= since; the agent's role is identified by a `ROLE:<name>` marker in the first user line of the subagent file (the `/tier-check` skill puts that marker in each prompt, so identification never depends on the parent transcript's format).
 - Codex evidence: `<sessions_dir>/**/*.jsonl` with mtime >= since containing `thread_settings_applied` events; the role is identified by `ROLE:<name>` appearing in a later user/agent message in the same file, and the parent is the file that contains the spawn (the one whose first `thread_settings_applied` has `--main`'s model).
 
 Importable for tests: `scan_claude(projects_dir, project_key, since_ts)` and `scan_codex(sessions_dir, since_ts)` both return `{"main": [models...], "agents": {role: [models...]}}`; `evaluate(scan, expects, main_prefix)` returns `(ok: bool, problems: list[str])`.
