@@ -42,7 +42,7 @@ Set the devlog `status: complete`, `approval: pending`. That's it. **Do not** to
 
 ## Step 3: Commit
 
-If a worker implemented this slice, it reaches `/wrap` only after the `/delegate` check protocol: scope diff, tests you ran, screen, every hunk read, accepted.
+If a worker implemented this slice, it reaches `/wrap` only after the `/delegate` check protocol: scope diff, tests you ran, screen, every hunk read, accepted. Run the protocol before invoking `/wrap`; `/wrap` itself only commits.
 
 1. Stage only the paths touched this slice plus the devlog — explicit paths, **never** `git add -A` / `git add .`.
 2. Short message from the devlog `summary:` (e.g. `feat(4.1b): <summary>`).

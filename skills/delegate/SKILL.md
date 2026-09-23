@@ -13,8 +13,8 @@ One sentence other skills use: **Delegation follows `/delegate`: scouts read, wo
 
 | Role | May | May never | Claude Code | Codex |
 |---|---|---|---|---|
-| **scout** | read, search, run read-only commands, fetch docs, report with `file:line` | edit, write, commit, decide | agent `scout`, `model: sonnet` | agent `scout`, `gpt-6-luna` low |
-| **worker** | edit files inside its assigned sub-slice, run that slice's tests, draft a doc, report files + test output + evidence | touch files outside the slice, edit plans or instruction files, commit, push, approve | agent `worker`, `model: sonnet` | agent `worker`, `gpt-6-luna` medium |
+| **scout** | read, search, run read-only commands, fetch docs, report with `file:line` | edit, write, commit, decide | agent `scout`, `model: sonnet`, no shell | agent `scout`, `gpt-6-luna` low |
+| **worker** | edit files inside its assigned sub-slice, run that slice's tests, draft a doc, report files + test output + evidence | touch files outside the slice, edit plans or instruction files, commit, push, approve | agent `worker`, `model: sonnet`, bare Bash (git ban is prose + protocol) | agent `worker`, `gpt-6-luna` medium |
 | **judge** | orient, author, synthesize, verify, apply, approve, commit | delegate a judgment | the session | the session |
 | **screen** | return calibrated typed answers at handoffs | execute anything | Jev via `TYPESAFE_API_KEY`, optional | same |
 
@@ -27,6 +27,7 @@ Safety net: `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` (Claude settings `env`) and `[ag
 - **Claude Code**: call the `Agent` tool with `subagent_type: "scout"` or `subagent_type: "worker"`. Start the prompt with `ROLE:scout` or `ROLE:worker` so `/tier-check` can identify the transcript.
 - **Codex**: write "spawn the `scout` agent" or "spawn the `worker` agent" in the instruction, and start the spawn prompt with `ROLE:scout` / `ROLE:worker`.
 - Both: the prompt is self-contained (the agent has not seen the conversation), names the exact files, and for a worker names the pass criterion, the allowed files, and the test command.
+- If the runner reports that `scout` or `worker` is not a known agent type, the definitions are not installed or the agent was not restarted after install. For ordinary work, fall back to `general-purpose` with `model: sonnet` (Codex: rely on `[agents] default_subagent_model`), keep the `ROLE:` marker, and say in the report that the fallback was used. Never use the fallback for a `/tier-check` proof run.
 
 ## The branching map
 
@@ -49,9 +50,9 @@ slash-goal loop  per sub-slice the phase doc marks delegable:
                  accept -> /wrap  |  reject -> re-dispatch (max 2) -> then do it itself
 /wrap /checkpoint /end-session   judge only
 
-/lookup /find-session            scout collects -> judge summarizes
+/lookup /find-session            scout collects -> judge summarizes (not yet routed)
 /audit-playbooks deep            scouts verify claims -> judge decides
-/extract-playbook /slim          worker drafts the file -> judge reviews, applies
+/extract-playbook /slim          worker drafts the file -> judge reviews, applies (not yet routed)
 ```
 
 Rows that stay on the judge stay there because orientation and plan authoring are the judgment itself, and the closers need the session's own memory and own every git operation.
@@ -60,7 +61,7 @@ Rows that stay on the judge stay there because orientation and plan authoring ar
 
 A worker's report is a claim, not evidence. Before anything a worker did reaches `/wrap`:
 
-1. **Scope.** Run `git diff --stat` and compare with the files the worker says it touched and the slice's allowed files. Any file outside the slice: reject without reading further.
+1. **Scope.** Record HEAD before dispatch. After the worker returns, `git rev-parse HEAD` must equal it; a worker that committed fails here. Run `git diff --stat` and compare with the files the worker says it touched and the slice's allowed files. Any file outside the slice: reject without reading further.
 2. **Tests.** Run the slice's test command yourself. The worker's pasted output does not count.
 3. **Screen.** Build `{"slice": {...}, "hunks": [{"id","file","summary"}]}` from the diff (one hunk per file or per logical change, a one-line summary each) and pipe it to `python <delegate skill base dir>/scripts/jev-screen.py diff-risk`. It returns `needs_close_review` per hunk and a `slice_status`. If it prints `skipped:`, read in file order instead.
 4. **Read.** Every hunk, in descending `needs_close_review`. The screen orders; it never excuses a hunk.

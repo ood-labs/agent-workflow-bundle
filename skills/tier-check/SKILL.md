@@ -20,6 +20,8 @@ Spawn the two agents in one message so they run in parallel. Each prompt starts 
 - **Claude Code**: `Agent` with `subagent_type: "scout"`, prompt `ROLE:scout Read README.md in the current directory and reply with its first heading only.` And `Agent` with `subagent_type: "worker"`, prompt `ROLE:worker Do not edit anything. Reply with the single word ok.`
 - **Codex**: "spawn the `scout` agent with the prompt `ROLE:scout Read README.md and reply with its first heading only.`" and "spawn the `worker` agent with the prompt `ROLE:worker Do not edit anything. Reply with the single word ok.`"
 
+If the runner says `scout` or `worker` is not a known agent type, stop and report FAIL: the definitions are not installed, or the agent was not restarted after install. Do not fall back to a generic agent for this run — a fallback proves the model override, not the definition.
+
 Wait for both to return.
 
 ## Step 3: Assert from transcripts
@@ -30,6 +32,7 @@ Run the checker that ships with `/delegate` (path relative to that skill's base 
   `python <delegate base dir>/scripts/tier-check.py --runner claude --since <timestamp> --expect scout=claude-sonnet- --expect worker=claude-sonnet- --main claude-fable-`
 - Codex:
   `python <delegate base dir>/scripts/tier-check.py --runner codex --since <timestamp> --expect scout=gpt-6-luna --expect worker=gpt-6-luna --main gpt-6-astra`
+  The Codex path is unverified against a real rollout: real rollouts keep spawned threads inside the parent file, and the checker cannot yet attribute a role there. Expect a FAIL that lists the spawned-thread models it saw; that is honest, not a pass.
 
 The `--main` prefix is whichever frontier model your session actually runs; check it rather than assuming, since the session model can change mid-run. The checker exits 0 only when both roles have a fresh transcript on the expected prefix and the session is on the frontier prefix; missing evidence is a FAIL.
 

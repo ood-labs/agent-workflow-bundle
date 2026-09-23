@@ -30,6 +30,18 @@ def test_delegate_never_lets_cheap_tier_judge_or_commit(repo_root):
     assert "the judge is never a subagent" in text.lower()
 
 
+def test_delegate_has_fallback_and_head_check(repo_root):
+    _, text = skill(repo_root, "delegate")
+    for needle in ["not a known agent type", "general-purpose", "git rev-parse HEAD", "(not yet routed)"]:
+        assert needle in text, needle
+
+
+def test_tier_check_refuses_fallback_and_labels_codex_unverified(repo_root):
+    _, text = skill(repo_root, "tier-check")
+    assert "Do not fall back" in text
+    assert "unverified" in text
+
+
 def test_tier_check_skill_dispatches_both_roles_with_markers(repo_root):
     p, text = skill(repo_root, "tier-check")
     fm = read_frontmatter(p)

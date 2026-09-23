@@ -64,9 +64,9 @@ slash-goal loop  per sub-slice marked delegable in the phase doc:
                  accept -> /wrap  |  reject -> re-dispatch (max 2) -> then do it itself
 /wrap /checkpoint /end-session   judge only
 
-/lookup /find-session            scout collects -> judge summarizes
+/lookup /find-session            scout collects -> judge summarizes (not yet routed)
 /audit-playbooks deep            scouts verify claims -> judge decides
-/extract-playbook /slim          worker drafts the file -> judge reviews, applies
+/extract-playbook /slim          worker drafts the file -> judge reviews, applies (not yet routed)
 ```
 
 Rows that stay on the judge stay there for a reason: orientation and plan authoring are the judgment itself; the three closers need the session's own memory of what happened and own every git operation.
