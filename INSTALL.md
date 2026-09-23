@@ -55,7 +55,9 @@ The installer prints these and never writes them. Add them so an agent spawned w
 - Claude Code, `~/.claude/settings.json`: `"env": { "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet" }`
 - Codex, `~/.codex/config.toml`: `[agents]` with `default_subagent_model = "gpt-6-luna"` and `default_subagent_reasoning_effort = "low"`
 
-Then run `/tier-check` in each runner.
+Then run `/tier-check` in each runner. Restart the agent first; new agent definitions load at startup. The Codex path is unverified until run for real.
+
+Claude Code cannot restrict Bash per command for one agent, and `permissions.deny` would also bind the main session, so the worker's git ban is enforced by prose plus the check protocol, not by settings.
 
 ## Updating an installed bundle
 
