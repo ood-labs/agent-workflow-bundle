@@ -11,7 +11,7 @@ The Agent Workflow Bundle is a **portable collection of skills, playbooks, an in
 Wear two hats here:
 
 1. **The bundle defines a workflow** that gets *used* in other projects (research → spec → scaffold → develop → maintain). To change how that workflow behaves anywhere, you edit a `SKILL.md` here.
-2. **Working *on* the bundle** means authoring/editing skills and playbooks, keeping the three top-level docs in sync, and re-deploying changed skills to the install root. There is no app to build and no test suite — the "product" is the prose in the skills.
+2. **Working *on* the bundle** means authoring/editing skills and playbooks, keeping the three top-level docs in sync, and re-deploying changed skills to the install root. There is no app to build, but there is a test suite (`python -m pytest tests -q`) that pins the agent files, the installers, the helper scripts, and the doctrine strings the skills must carry — the "product" is still the prose in the skills.
 
 ## Repository structure
 
@@ -43,7 +43,7 @@ Three stages plus ongoing maintenance. Full narrative in [WORKFLOW.md](WORKFLOW.
 
 **Stage 3 — Active development**, repeated per phase:
 - `/formalize-plan` turns a plan into `docs/phases/phase-N-*.md` with pass criteria and an **Autonomy & human-in-the-loop** section.
-- `/plan-audit` (optional, for substantial phases) runs four parallel agents — spec-alignment, **acceptance-bar/proof-altitude**, toolchain-feasibility, decomposition — and fixes the plan.
+- `/plan-audit` (optional, for substantial phases) runs five parallel scouts — spec-alignment, **acceptance-bar/proof-altitude**, toolchain-feasibility, decomposition, in-repo truth/reuse — and fixes the plan.
 - `/slash-goal` (optional) emits a short `"slash goal"` completion-condition that points at the phase doc and drives it autonomously.
 - `/start-session` orients from the last commit + devlog `approval` frontmatter, then works.
 - During work: `/wrap` closes each sub-slice and rolls on; `/checkpoint` is a mid-work save; `/audit` is a quality gate.
@@ -70,7 +70,7 @@ Three stages plus ongoing maintenance. Full narrative in [WORKFLOW.md](WORKFLOW.
         ▼
  STAGE 3 · ACTIVE DEVELOPMENT   ◀─────────────────────────┐  (repeat per phase)
    /formalize-plan ──▶ /plan-audit ──▶ /slash-goal         │
-   (plan → phase doc)  (4-agent gate)  (short autonomous   │
+   (plan → phase doc)  (5-scout gate)  (short autonomous   │
         │                               goal, optional)    │
         ▼                                                  │
    /start-session                                          │
@@ -101,7 +101,7 @@ flowchart TD
   D --> E[/spec-draft → spec.md/]
   E --> F[/scaffold-project/]
   F --> G[/formalize-plan/]
-  G --> H[/plan-audit · 4-agent gate/]
+  G --> H[/plan-audit · 5-scout gate/]
   H --> I[/slash-goal · short autonomous goal/]
   I --> J[/start-session/]
   J --> K{work loop}

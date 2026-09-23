@@ -100,3 +100,14 @@ def test_docs_mention_delegate_and_tier_check(repo_root):
     assert "<root>/agents/" in install and "CLAUDE_CODE_SUBAGENT_MODEL" in install and "default_subagent_model" in install
     agents_md = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
     assert "`agents/claude/`" in agents_md and "`skills/delegate/`" in agents_md and "/tier-check" in agents_md
+
+
+def test_docs_describe_plan_audit_as_five_scouts(repo_root):
+    for name in ("README.md", "WORKFLOW.md", "AGENTS.md"):
+        text = (repo_root / name).read_text(encoding="utf-8")
+        assert "4-agent" not in text, name
+        assert "Four parallel Explore" not in text, name
+        assert "Three parallel Explore" not in text, name
+    agents_md = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
+    assert "no test suite" not in agents_md
+    assert "pytest tests -q" in agents_md
