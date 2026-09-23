@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import subprocess
 import sys
@@ -128,11 +129,49 @@ def test_cli_unknown_mode_prints_skipped_json(repo_root):
     assert "unknown mode" in out["skipped"]
 
 
-def test_cli_reads_utf8_stdin(repo_root, monkeypatch):
+def test_run_skips_on_non_dict_document(repo_root, monkeypatch):
+    m = load_module(repo_root)
     monkeypatch.setenv("TYPESAFE_API_KEY", "x")
-    payload = json.dumps({"slice": {"pass_criterion": "café — ünïcode"}, "hunks": []}, ensure_ascii=False)
-    r = subprocess.run([sys.executable, str(repo_root / "skills/delegate/scripts/jev-screen.py"), "finding-triage"],
-                       input=payload, capture_output=True, text=True, encoding="utf-8")
-    assert r.returncode == 0
-    out = json.loads(r.stdout)
-    assert "skipped" in out
+    out = m.run("diff-risk", [])
+    assert out["skipped"].startswith("bad input")
+
+
+def test_run_skips_on_non_json_200(repo_root, monkeypatch):
+    m = load_module(repo_root)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+
+    def fake(key, state, questions):
+        raise ValueError("Expecting value")
+    m.call_api = fake
+    out = m.run("finding-triage", {"doctrine": "d", "findings": [{"id": "f1", "claim": "c"}]})
+    assert out["skipped"].startswith("API returned non-JSON")
+
+
+def test_run_skips_on_non_dict_response(repo_root, monkeypatch):
+    m = load_module(repo_root)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+
+    def fake(key, state, questions):
+        return []
+    m.call_api = fake
+    out = m.run("finding-triage", {"doctrine": "d", "findings": [{"id": "f1", "claim": "c"}]})
+    assert out["skipped"].startswith("bad response")
+
+
+def test_main_decodes_utf8_stdin_round_trip(repo_root, monkeypatch, capsys):
+    m = load_module(repo_root)
+    monkeypatch.setenv("TYPESAFE_API_KEY", "x")
+    doc = {"doctrine": "d", "findings": [{"id": "f-café—ünï", "claim": "c"}]}
+    payload = json.dumps(doc, ensure_ascii=False).encode("utf-8")
+    # Deliberately wrong encoding so main()'s sys.stdin.reconfigure(encoding="utf-8")
+    # must fix it before this can decode correctly.
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(payload), encoding="latin-1"))
+
+    def fake(key, state, questions):
+        return {"usage": {}, "answers": {
+            "bucket_f-café—ünï": {"type": "choice", "choice": "derived_fix", "confidence": 0.9},
+            "safe_f-café—ünï": {"type": "noul", "noul": 0.95}}}
+    m.call_api = fake
+    m.main(["finding-triage"])
+    out = capsys.readouterr().out
+    assert json.loads(out)["rows"][0]["id"] == "f-café—ünï"

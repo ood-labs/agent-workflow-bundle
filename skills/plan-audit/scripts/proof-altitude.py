@@ -146,7 +146,8 @@ def call_api(key, state, questions, timeout=90):
     req = urllib.request.Request(
         API_URL,
         data=body,
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                 "User-Agent": "agent-workflow-bundle-jev/1.0"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.load(resp)

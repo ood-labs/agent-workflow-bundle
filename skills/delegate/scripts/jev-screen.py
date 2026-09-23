@@ -109,7 +109,8 @@ def decide_diff(answers, hunks):
 def call_api(key, state, questions, timeout=90):
     body = json.dumps({"state": state, "model": MODEL, "questions": questions}).encode()
     req = urllib.request.Request(API_URL, data=body,
-                                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+                                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                                          "User-Agent": "agent-workflow-bundle-jev/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.load(resp)
 
@@ -118,6 +119,8 @@ def run(mode, doc):
     key = os.environ.get("TYPESAFE_API_KEY")
     if not key:
         return {"skipped": "TYPESAFE_API_KEY not set"}
+    if not isinstance(doc, dict):
+        return {"skipped": "bad input: document is not a JSON object"}
     try:
         questions = build_questions(mode, doc)
     except (KeyError, ValueError, TypeError) as e:
@@ -127,9 +130,13 @@ def run(mode, doc):
     try:
         resp = call_api(key, doc, questions)
     except urllib.error.HTTPError as e:
-        return {"skipped": f"API HTTP {e.code}"}
+        return {"skipped": f"API HTTP {e.code}: {e.read()[:120].decode(errors='replace')}"}
     except (urllib.error.URLError, TimeoutError, OSError) as e:
         return {"skipped": f"API unreachable: {e}"}
+    except ValueError as e:
+        return {"skipped": f"API returned non-JSON: {e}"}
+    if not isinstance(resp, dict):
+        return {"skipped": "bad response: not a JSON object"}
     try:
         answers = resp.get("answers", {})
         out = {"usage": resp.get("usage", {})}
