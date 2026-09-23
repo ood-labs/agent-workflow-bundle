@@ -1,3 +1,4 @@
+import datetime as dt
 import importlib.util
 import json
 import os
@@ -77,13 +78,55 @@ def test_evaluate_fails_when_main_is_not_frontier(repo_root):
 
 
 def test_since_excludes_old_transcripts(repo_root, tmp_path):
+    # Per-row semantics: a subagent file's mtime is fresh (file-level prefilter
+    # passes) but its only assistant row is timestamped before --since, so it must
+    # still be excluded. A row with no timestamp at all in an equally fresh file is
+    # included regardless of --since.
     m = load(repo_root)
-    proj = make_claude_tree(tmp_path)
-    old = time.time() - 3600
-    for p in (proj / "s1" / "subagents").glob("*.jsonl"):
-        os.utime(p, (old, old))
-    scan = m.scan_claude(tmp_path / "projects", "C--repo", since_ts=time.time() - 60)
-    assert scan["agents"] == {}
+    proj = tmp_path / "projects" / "C--repo"
+    sess = proj / "s1"
+    since_ts = time.time()
+    old_iso = dt.datetime.fromtimestamp(since_ts - 3600, dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    jl(sess / "subagents" / "agent-old.jsonl", [
+        {"type": "user", "isSidechain": True, "message": {"content": "ROLE:scout say ok"}},
+        {"type": "assistant", "isSidechain": True, "timestamp": old_iso,
+         "message": {"model": "claude-sonnet-5", "content": []}},
+    ])
+    jl(sess / "subagents" / "agent-no-ts.jsonl", [
+        {"type": "user", "isSidechain": True, "message": {"content": "ROLE:worker touch nothing"}},
+        {"type": "assistant", "isSidechain": True, "message": {"model": "claude-sonnet-5", "content": []}},
+    ])
+    scan = m.scan_claude(tmp_path / "projects", "C--repo", since_ts=since_ts)
+    assert "scout" not in scan["agents"]
+    assert scan["agents"]["worker"] == ["claude-sonnet-5"]
+
+
+def test_since_rejects_garbage(repo_root, tmp_path):
+    r = subprocess.run([sys.executable, str(repo_root / "skills/delegate/scripts/tier-check.py"),
+                        "--runner", "claude", "--since", "not-a-date",
+                        "--expect", "scout=claude-sonnet-", "--main", "claude-fable-"],
+                       capture_output=True, text=True)
+    assert r.returncode == 2
+    assert "--since" in r.stderr
+
+
+def test_codex_single_file_rollout_reports_spawned_models(repo_root, tmp_path):
+    m = load(repo_root)
+    sessions = tmp_path / "sessions" / "2026" / "09" / "22"
+    jl(sessions / "rollout-single.jsonl", [
+        {"type": "event_msg", "payload": {"type": "thread_settings_applied", "thread_id": "t1",
+         "thread_settings": {"model": "gpt-6-astra"}}},
+        {"type": "event_msg", "payload": {"type": "thread_settings_applied", "thread_id": "t1",
+         "thread_settings": {"model": "gpt-5.6-sol"}}},
+        {"type": "event_msg", "payload": {"type": "thread_settings_applied", "thread_id": "t1",
+         "thread_settings": {"model": "gpt-6-luna"}}},
+    ])
+    scan = m.scan_codex(tmp_path / "sessions", since_ts=0)
+    assert scan["main"] == ["gpt-6-astra"]
+    assert scan["codex_spawned_models"] == ["gpt-5.6-sol", "gpt-6-luna"]
+    ok, problems = m.evaluate(scan, {"scout": "gpt-6-luna"}, "gpt-6-astra", runner="codex")
+    assert not ok
+    assert any("unverified" in p and "gpt-6-luna" in p for p in problems)
 
 
 def test_codex_scan_finds_roles_and_parent(repo_root, tmp_path):
