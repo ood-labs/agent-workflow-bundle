@@ -1,6 +1,6 @@
 ---
 name: delegate
-description: The bundle's model-tiering doctrine. Cheap-tier scouts read and report, cheap-tier workers implement one sub-slice each, the session (Fable on Claude Code, Astra on Codex) is the only judge, and Jev screens every handoff. Other skills cite this; invoke it directly to see the branching map, the check protocol, or how to name a role on each runner.
+description: The bundle's model-tiering doctrine. Cheap-tier scouts read and report, cheap-tier workers implement one sub-slice each, the session is the only judge whatever frontier model it happens to run, and Jev screens every handoff. Other skills cite this; invoke it directly to see the branching map, the check protocol, or how to name a role on each runner.
 allowed-tools: Read, Glob, Grep, Bash(python:*), Bash(git diff:*), Bash(git status:*)
 user-invocable: true
 ---
@@ -81,6 +81,7 @@ Scout reports get the lighter version. Collect each finding as `{"id","agent","c
 4. **Jev orders and gates; it never excuses reading or applies anything.** Skipped screen means the prose rubric, not a free pass.
 5. **Mark every dispatched prompt with `ROLE:<name>`** so `/tier-check` can prove the tier from transcripts.
 6. **Two rejections, then the judge does it.** Log the lesson.
+7. **The judge is a tier, not a named model.** Whatever frontier model the session runs is the judge — it changes between sessions and sometimes mid-session. Never pin a model name in a skill, a goal, or a report, and pass `/tier-check` the `--main` prefix you are actually on.
 
 ## What NOT to do
 

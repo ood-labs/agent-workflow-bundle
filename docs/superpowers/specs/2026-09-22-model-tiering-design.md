@@ -10,9 +10,9 @@ updated: 2026-09-22
 
 ## Problem
 
-Every skill in the bundle that spawns agents (`/audit`, `/plan-audit`, deep `/audit-playbooks`) spawns them on the session's own model, because on Claude Code the built-in Explore agent inherits the session model and on Codex spawned threads inherit the parent's model unless told otherwise. A Fable session therefore runs five Fable reporters to read a phase doc, and an Astra campaign implements every sub-slice on Astra. The frontier model is spent on reading and drafting, the cheap tier is unused, and nothing records which model actually did what.
+Every skill in the bundle that spawns agents (`/audit`, `/plan-audit`, deep `/audit-playbooks`) spawns them on the session's own model, because on Claude Code the built-in Explore agent inherits the session model and on Codex spawned threads inherit the parent's model unless told otherwise. A frontier session therefore runs five frontier reporters to read a phase doc, and a frontier campaign implements every sub-slice on that same expensive model. The frontier model is spent on reading and drafting, the cheap tier is unused, and nothing records which model actually did what.
 
-The user runs the workflow skills in Claude Code on Fable and the slash-goal campaigns in Codex on Astra. Both runners must delegate the same way, from the same prose, and the delegation must be provable.
+The user runs the workflow skills in Claude Code and the slash-goal campaigns in Codex, each on whatever frontier model that runner is set to at the time. Both runners must delegate the same way, from the same prose, and the delegation must be provable. The judge is a tier, not a named model: it changes under you, sometimes mid-session.
 
 ## Verified facts this design rests on (2026-09-22)
 
@@ -36,7 +36,7 @@ Things NOT verified and therefore not relied on: whether a Codex spawn tool expo
 |---|---|---|---|---|
 | **scout** | read files, run read-only commands, search, fetch docs, report | edit, write, commit, decide | `~/.claude/agents/scout.md`, `model: sonnet` | `~/.codex/agents/scout.toml`, `model = "gpt-6-luna"`, `model_reasoning_effort = "low"` |
 | **worker** | edit files inside its assigned sub-slice, run the slice's tests, draft a doc, report files touched + test output + evidence | touch files outside the slice, edit plans or instruction files, commit, push, approve | `~/.claude/agents/worker.md`, `model: sonnet` | `~/.codex/agents/worker.toml`, `model = "gpt-6-luna"`, `model_reasoning_effort = "medium"` |
-| **judge** | everything else: orient, author plans, synthesize, verify, apply fixes, approve, commit | delegate a judgment | the session itself (Fable) | the session itself (Astra) |
+| **judge** | everything else: orient, author plans, synthesize, verify, apply fixes, approve, commit | delegate a judgment | the session itself, on whatever frontier model it runs | the session itself, on whatever frontier model it runs |
 | **screen** | return calibrated typed answers at handoffs | execute anything | Jev via `TYPESAFE_API_KEY`, optional | same |
 
 The judge is never a subagent. A skill that needs judgment runs it in the session.
@@ -46,7 +46,7 @@ Safety net: `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` in the Claude settings env and `
 ## The branching map
 
 ```
-                 JUDGE (Fable / Astra)             CHEAP TIER (sonnet / gpt-6-luna)         SCREEN (Jev)
+                 JUDGE (the session)               CHEAP TIER (sonnet / gpt-6-luna)         SCREEN (Jev)
 /start-session   orient, planning audit            -                                        -
 /formalize-plan  author the contract               -                                        -
 /spec-draft

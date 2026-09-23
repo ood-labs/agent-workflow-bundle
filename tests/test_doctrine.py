@@ -132,3 +132,22 @@ def test_docs_never_describe_a_skill_as_using_explore(repo_root):
     agents_md = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
     assert "no test suite" not in agents_md
     assert "pytest tests -q" in agents_md
+
+
+def test_docs_never_pin_the_judge_to_a_named_model(repo_root):
+    # The judge is a tier: whatever frontier model the session runs. Naming one
+    # makes a correct run look wrong when the session is on a different model.
+    NAMED = ("Fable", "Astra", "Opus", "Sonnet 5 is the judge")
+    targets = [
+        repo_root / "skills/delegate/SKILL.md",
+        repo_root / "skills/tier-check/SKILL.md",
+        repo_root / "WORKFLOW.md",
+        repo_root / "README.md",
+        repo_root / "docs/superpowers/specs/2026-09-22-model-tiering-design.md",
+    ]
+    for p in targets:
+        for i, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+            if "judge" not in line.lower():
+                continue
+            for name in NAMED:
+                assert name not in line, f"{p.name}:{i} pins the judge to {name}: {line.strip()}"

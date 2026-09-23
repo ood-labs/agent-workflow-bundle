@@ -107,7 +107,7 @@ These skills are intended to be user-invoked explicitly.
 | `/formalize-plan` | Turn a plan-mode plan into phase docs and implementation plan updates |
 | `/slash-goal` | Author a **short** completion-condition for the built-in `"slash goal"` command that points at the phase doc as the contract and drives it end-to-end — `$start-session` / `$audit` / `$end-session` bookended, proof-first, explicit-paths-only, anti-stall, stopping only at the doc's hard blockers. The detail (pass criteria + the Autonomy section's gate tiers and pre-authorizations) lives in the phase doc, so the goal stays terse. Run after `/formalize-plan`, before starting work. |
 | `/delegate` | The model-tiering doctrine: cheap-tier `scout` agents read and report, cheap-tier `worker` agents implement one sub-slice each, the session judges, Jev screens each handoff. Other skills cite it. |
-| `/tier-check` | Proves which model each delegated agent ran on (Claude Code verified; Codex path unverified until run in Astra): spawns a scout and a worker, then asserts from the runner's transcripts which model each ran on, with a mandatory negative control. |
+| `/tier-check` | Proves which model each delegated agent ran on (Claude Code verified; Codex path unverified until run in a real Codex session): spawns a scout and a worker, then asserts from the runner's transcripts which model each ran on, with a mandatory negative control. |
 
 ### Planning, project bootstrap, knowledge
 
