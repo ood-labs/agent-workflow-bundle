@@ -1,8 +1,6 @@
 import tomllib
 from conftest import read_frontmatter
 
-MUTATING = ("git commit", "git add", "git push", "git reset", "git checkout", "git merge", "git rebase", "git tag")
-
 
 def test_claude_scout_is_read_only_sonnet(repo_root):
     fm = read_frontmatter(repo_root / "agents/claude/scout.md")
@@ -11,8 +9,10 @@ def test_claude_scout_is_read_only_sonnet(repo_root):
     tools = {t.strip() for t in fm["tools"].split(",")}
     assert {"Read", "Glob", "Grep"} <= tools
     assert not ({"Edit", "Write", "NotebookEdit"} & tools)
-    assert "Bash" not in tools, "unrestricted Bash would allow mutation"
-    assert not any(t.startswith(f"Bash({m}") for m in MUTATING for t in tools)
+    # Claude Code cannot restrict Bash per command (a Bash(git log:*) specifier does
+    # not narrow the tool), so the only safe grant for a read-only agent is no Bash
+    # entry at all.
+    assert "Bash" not in tools and not any(t.startswith("Bash(") for t in tools)
 
 
 def test_claude_worker_edits_but_never_commits(repo_root):
@@ -21,8 +21,13 @@ def test_claude_worker_edits_but_never_commits(repo_root):
     assert fm["model"] == "sonnet"
     tools = {t.strip() for t in fm["tools"].split(",")}
     assert {"Read", "Edit", "Write", "Glob", "Grep"} <= tools
-    assert "Bash" not in tools, "unrestricted Bash would allow git commit"
-    assert not any(t.startswith(f"Bash({m}") for m in MUTATING for t in tools)
+    assert "Bash" in tools
+    # No Bash(...) specifier entries: Claude Code does not enforce them, so listing
+    # one would be a false sense of restriction. The git ban is prose + protocol.
+    assert not any(t.startswith("Bash(") for t in tools)
+    body = (repo_root / "agents/claude/worker.md").read_text(encoding="utf-8")
+    assert "never run git" in body.lower()
+    assert "HEAD must equal" in body
 
 
 def test_codex_scout_is_luna_low_read_only(repo_root):
