@@ -17,7 +17,7 @@ Wear two hats here:
 
 | Path | What it is |
 |------|------------|
-| `skills/<name>/SKILL.md` | One skill each. The source of truth. 19 skills today. |
+| `skills/<name>/SKILL.md` | One skill each. The source of truth. 20 skills today. |
 | `skills/scaffold-project/templates/` | Frontmatter `SCHEMA.md` + 5 templates (devlog, phase, knowledge, lessons, state) used during scaffolding |
 | `skills/plan-audit/scripts/proof-altitude.py` | Optional Jev (TypeSafe) screen of a phase doc's pass criteria; runs only with `TYPESAFE_API_KEY`, stdlib only. Helpers live inside the skill folder because the installer copies only `skills/` |
 | `skills/delegate/` | The model-tiering doctrine skill, with `scripts/jev-screen.py` (Jev screens for finding-triage and diff-risk, JSON on stdin, always exits 0) and `scripts/tier-check.py` (asserts models from transcripts; requires `--expect` and `--main`, exits 1 on mismatch or missing evidence) |
@@ -116,7 +116,7 @@ flowchart TD
 
 ## Skills catalog
 
-**Session management:** `/start-session`, `/checkpoint`, `/wrap`, `/plan-audit`, `/audit`, `/end-session`, `/find-session`, `/formalize-plan`, `/slash-goal`, `/delegate`, `/tier-check`.
+**Session management:** `/start-session`, `/checkpoint`, `/wrap`, `/plan-audit`, `/audit`, `/end-session`, `/find-session`, `/formalize-plan`, `/slash-goal`, `/delegate`, `/tier-check`, `/beads-mirror`.
 **Planning / bootstrap / knowledge:** `/research-prompt`, `/spec-draft`, `/scaffold-project`, `/slim-agent-md` (+ `/slim-claude-md` alias), `/lookup`, `/extract-playbook`, `/audit-playbooks`.
 
 See [README.md](README.md) for one-line purposes. The skill's own `SKILL.md` is the detail.

@@ -1,7 +1,7 @@
 ---
 name: start-session
 description: Start session - review last commit and get up to speed
-allowed-tools: Read, Glob, Grep, Bash(git log:*), Bash(git show:*), Bash(git diff:*)
+allowed-tools: Read, Glob, Grep, Bash(git log:*), Bash(git show:*), Bash(git diff:*), Bash(bd:*)
 user-invocable: true
 ---
 
@@ -13,6 +13,8 @@ CONTEXT TO READ AT START:
 - `docs/state.md` if it exists — slim snapshot of current focus, blockers, decisions pending. Read this for orientation.
 - `AGENTS.md` Current Status section — high-level phase context. (CLAUDE.md is normally an `@AGENTS.md` import stub with no content of its own; read it only in legacy projects where it still carries full sections.)
 - The current phase doc from `docs/phases/` (referenced in state.md or implementation-plan.md).
+
+BEADS MIRROR (silent; doctrine `/beads-mirror`): only if the active phase doc's frontmatter has `beads_epic`, the project has `.beads/`, and `bd ready` exits 0. Pull (`bd dolt pull` when a remote is configured), then **Reconcile** the epic's children against git and the phase doc. After the planning audit passes, **Claim** the next row's bead with the session's `--actor`. The only beads result that changes what you do is a claim refused because another live session holds the row: take the next row the phase doc allows in parallel, or stop. Never mention beads to the user; record what changed in the devlog's `beads:` line.
 
 If the active instruction file's Current Status references a date older than ~2 weeks, surface it: "Current Status hasn't been updated in N days, may be stale." Don't auto-fix; let the user decide.
 

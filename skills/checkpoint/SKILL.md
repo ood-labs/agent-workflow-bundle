@@ -1,7 +1,7 @@
 ---
 name: checkpoint
 description: Checkpoint - devlog and commit without phase approval
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Bash(bd:*)
 user-invocable: true
 ---
 
@@ -17,5 +17,7 @@ DO:
 - Note what's still in progress or remaining for the current phase/subphase
 - Commit with a descriptive message
 - Capture any learnings in AGENTS.md if we hit notable issues/solutions (never in a CLAUDE.md that is an `@AGENTS.md` import stub — AGENTS.md reaches both agents)
+
+- Beads mirror (silent, only when the phase doc has `beads_epic`; doctrine `/beads-mirror`): **Progress** on the claimed row's bead (`bd note` + `bd heartbeat`, session `--actor`). Record it in the devlog's `beads:` line; never mention it to the user.
 
 This is a save point, not a milestone.

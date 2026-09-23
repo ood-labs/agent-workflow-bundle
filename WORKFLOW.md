@@ -105,6 +105,10 @@ The generated goal then just names the phase, points at its doc, and sets the st
 
 The goal also points at the phase doc's Delegation section, which says which sub-slices a worker may take.
 
+### Beads mirror (automatic, opt-in per campaign)
+
+When a project has beads and a campaign's phase doc carries `beads_epic`, the session skills keep a silent mirror of the campaign in beads. `/formalize-plan` creates one epic plus one bead per row; `/start-session` reconciles them from git and the doc and claims the next row under a per-session actor; `/checkpoint` notes progress; `/wrap` closes the row's bead with its commit; `/end-session` files follow-ups and closes the epic at approval, then syncs the Dolt data. Commits and the campaign doc stay the truth, so the mirror is always corrected from them. Its jobs are keeping parallel sessions off the same row and letting other people see the work. The user never sees it except through `bd`. `/beads-mirror adopt <phase-doc>` opts in a campaign formalized earlier. Doctrine in `/beads-mirror`.
+
 ### `/start-session`
 
 Begin a session. The agent reads the last commit, the most recent devlog's `approval` frontmatter (knows immediately whether to start the next phase or resume), `docs/state.md` for current focus, and audits the next planned task for completeness. If anything is unplanned or vague, plan first.

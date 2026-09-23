@@ -1,7 +1,7 @@
 ---
 name: end-session
 description: End session - close devlog, run schema audit + lessons + state updates, optionally suggest slim or playbook extraction, commit.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Bash(wc:*)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Bash(wc:*), Bash(bd:*)
 user-invocable: true
 ---
 
@@ -73,6 +73,15 @@ Walk the file. Update sections that shifted this session:
 Set frontmatter `updated:` to today.
 
 If no `docs/state.md` exists, skip silently. (It's optional.)
+
+## Phase 4b: Beads mirror
+
+Only if the phase doc's frontmatter has `beads_epic` (doctrine `/beads-mirror`). Otherwise skip silently. Everything here is silent: write what changed into the devlog's `beads:` line, never ask the user, never show it in the final report, and never let a failure stop the session.
+
+1. **File follow-ups**: each real piece of follow-up work in *Issues Encountered* / *Next Steps* becomes a child bead with `discovered-from` the current row's bead. Lessons still go to Phase 5, not beads.
+2. **Open claims**: a row this session claimed but didn't finish keeps its claim plus a `bd note`; a row being abandoned gets `bd unclaim`.
+3. **Phase boundary**: if Phase 3 approved the phase, close the epic. For each child still open, finish it, re-parent it to the next campaign's epic, or leave it open with its reason in the devlog line. Never `--force`.
+4. The Dolt push happens in Phase 10.
 
 ## Phase 5: Lessons check
 
@@ -181,7 +190,7 @@ Don't auto-edit. Wait for user direction.
    )"
    ```
 
-6. **Push** if a remote is configured: `git push origin <current-branch>`. Verify with `git status` after.
+6. **Push** if a remote is configured: `git push origin <current-branch>`. Verify with `git status` after. With a beads mirror, also run `bd dolt push` when `bd config get sync.remote` names a remote. It moves only the Dolt data ref, runs even when the phase doc forbids code pushes, is silent, and a failure goes in the devlog's `beads:` line.
 
 7. Don't `--force`, don't `--amend`. If a hook fails, fix the underlying issue, re-stage, create a NEW commit.
 

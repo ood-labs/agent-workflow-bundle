@@ -59,6 +59,10 @@ Then run `/tier-check` in each runner. Restart the agent first; new agent defini
 
 Claude Code cannot restrict Bash per command for one agent, and `permissions.deny` would also bind the main session, so the worker's git ban is enforced by prose plus the check protocol, not by settings.
 
+## Beads mirror (optional)
+
+`/beads-mirror` needs the `bd` CLI on PATH and a project already set up with beads (`.beads/`, healthy `bd ready`). On Windows install bd with `npm install -g @beads/bd` only. Nothing is installed or configured by this bundle. Projects or campaigns without beads are unaffected: the session skills skip every beads step silently. To keep permission prompts from stalling a goal, allow the everyday `bd` commands (`create`, `close`, `list`, `show`, `update`, `ready`, `note`, `heartbeat`, `children`, `stale`, `reclaim`, `unclaim`, `config`, `dolt`) in the project's `.claude/settings.local.json` or the equivalent Codex approval list.
+
 ## Updating an installed bundle
 
 Updates use the same installer with the `-Overwrite` / `OVERWRITE=1` flag. The flag is destructive — it deletes each installed skill subtree before copying the new one — so follow the steps in order rather than running the installer directly.
