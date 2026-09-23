@@ -102,12 +102,18 @@ def test_docs_mention_delegate_and_tier_check(repo_root):
     assert "`agents/claude/`" in agents_md and "`skills/delegate/`" in agents_md and "/tier-check" in agents_md
 
 
-def test_docs_describe_plan_audit_as_five_scouts(repo_root):
-    for name in ("README.md", "WORKFLOW.md", "AGENTS.md"):
+def test_docs_never_describe_a_skill_as_using_explore(repo_root):
+    # "Explore" may appear only in a prohibition (never use it), never in a
+    # description of what a skill does.
+    PROHIBITION = ("never", "not ", "defect", "instead")
+    for name in ("README.md", "WORKFLOW.md", "INSTALL.md", "AGENTS.md"):
         text = (repo_root / name).read_text(encoding="utf-8")
         assert "4-agent" not in text, name
-        assert "Four parallel Explore" not in text, name
-        assert "Three parallel Explore" not in text, name
+        assert "3-agent" not in text, name
+        for i, line in enumerate(text.splitlines(), 1):
+            if "Explore" in line:
+                assert any(p in line.lower() for p in PROHIBITION), \
+                    f"{name}:{i} describes a skill as using Explore: {line.strip()}"
     agents_md = (repo_root / "AGENTS.md").read_text(encoding="utf-8")
     assert "no test suite" not in agents_md
     assert "pytest tests -q" in agents_md

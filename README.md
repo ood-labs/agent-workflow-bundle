@@ -101,7 +101,7 @@ These skills are intended to be user-invoked explicitly.
 | `/checkpoint` | Save mid-work progress with devlog and commit, no phase approval |
 | `/wrap` | Lightweight sub-phase close-out: short devlog (`status: complete`, `approval: pending`) + explicit-path commit, then move on. No `/end-session` ceremony. Heavier than `/checkpoint`, far lighter than `/end-session` — for rolling through sub-slices fast. |
 | `/plan-audit` | Pre-implementation 5-scout audit (spec-alignment, acceptance-bar/proof-altitude, toolchain-feasibility, sub-phase decomposition, in-repo truth/reuse); the acceptance-bar agent flags pass criteria a mock/placeholder could clear (optionally pre-screened by Jev via the bundled `scripts/proof-altitude.py` when `TYPESAFE_API_KEY` is set). Applies a best-guess fix for every finding and flags the judgement calls to review/revert. Run after `/formalize-plan`, before starting work. |
-| `/audit` | Post-implementation 3-agent quality gate (code, spec, test) with safe fixes applied |
+| `/audit` | Post-implementation 3-scout quality gate (code, spec, test) with safe fixes applied |
 | `/end-session` | Phase boundary: close devlog, schema audit, lessons prompt, state.md update, optional slim/playbook nudges, commit |
 | `/find-session` | Inspect previous Claude Code or Codex session transcripts where supported |
 | `/formalize-plan` | Turn a plan-mode plan into phase docs and implementation plan updates |
@@ -122,7 +122,7 @@ User-invocable. Agents may also auto-trigger when the description matches the co
 | `/slim-claude-md` | Backward-compatible alias for older Claude Code projects. |
 | `/lookup` | Search project `docs/knowledge/` AND global playbooks by keyword |
 | `/extract-playbook` | Distill cross-project content into the global playbook library |
-| `/audit-playbooks` | Walk the playbook library, flag stale entries, optionally Explore-agent-verify against current docs |
+| `/audit-playbooks` | Walk the playbook library, flag stale entries, optionally spawn one scout per playbook to verify against current docs |
 
 ## Playbooks
 
