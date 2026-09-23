@@ -17,7 +17,7 @@ Beads never holds a pass criterion, a ruling or a decision. When beads disagrees
 ## Invisible by design
 
 - **Never ask the user** anything about beads.
-- **Never show beads output** in a user-facing report, and never stop or slow a session because of beads.
+- **Never mention beads in any reply to the user**: no bead IDs, claims, closes, pushes, skipped steps or leftover beads. This applies to final summaries too. Beads appears only in the commit subject's `[<id>]` and in the devlog's `beads:` line. Never stop or slow a session because of beads.
 - Every beads action in a session is recorded as **one line in that session's devlog**: `beads: <what changed>`, or `beads: skipped — <reason>`.
 - A beads command that fails is logged in that line and the session carries on. The one exception, which changes what a session does, is a claim refused because another live session holds the row (see Claim below).
 
@@ -33,7 +33,7 @@ If (1) holds but (2) or (3) fails, log `beads: skipped — <reason>` in the devl
 
 ## Identity
 
-Every `bd` write in a session passes `--actor "<session-id>"`, where `<session-id>` is the project's commit Session-Id value if it has one (for example `alex/2026-09-23/save-wave-1`), otherwise `<git user.name>/<YYYY-MM-DD>/<session-slug>`. Use one value for the whole session. Without a per-session actor, two sessions run by the same person look like one claimant and both "win" the same claim.
+Decide the session id once, at the first beads step, and write it into the devlog's `beads:` line. **Every** `bd` write in the session (create, claim, note, heartbeat, close, unclaim) passes `--actor "<session-id>"`; a write without it falls back to the shared git user name and defeats the claim. The session id is, where `<session-id>` is the project's commit Session-Id value if it has one (for example `alex/2026-09-23/save-wave-1`), otherwise `<git user.name>/<YYYY-MM-DD>/<session-slug>`. Use one value for the whole session. Without a per-session actor, two sessions run by the same person look like one claimant and both "win" the same claim.
 
 ## Row ↔ bead mapping
 
@@ -59,9 +59,10 @@ A campaign's "no push" rule (in its phase doc or its `/slash-goal`) covers **cod
 - it is `in_progress` with an expired lease (`bd stale`) and no commit has touched the row since → `bd reclaim`
 - a row in the phase doc has no bead → create it (`bd create --type=task --parent <epic> --title "<row-id> <name>" --actor ...`)
 
-**Claim** (`/start-session`, and `/wrap` rolling on). After `bd dolt pull`: `bd update <id> --claim --actor ...`, then `bd dolt push`.
-- **Refused** because another actor holds a live claim → that row is taken. Move to the next row the phase doc allows in parallel, or stop if there is none.
-- **Push rejected** → `bd dolt pull`, then re-read the bead (`bd show <id> --json`). If another actor now holds it, treat it as refused.
+**Claim** (`/start-session`, and `/wrap` rolling on). Run pull → claim → push back to back, with nothing in between: `bd dolt pull`, `bd update <id> --claim --actor "<session-id>"`, `bd dolt push`.
+- **Claim refused** because another actor holds it → that row is taken. Move to the next row the phase doc allows in parallel, or stop if there is none.
+- **Push rejected** means another session pushed between your pull and your push. Run `bd dolt pull` and read its output. If it reports `auto-merged issue <your id>`, the claim is **contested**: Dolt settles it last-write-wins, so your local copy now shows you as holder even though the other session claimed it first. Treat the row as taken and **write nothing more to that bead**. Any write from you would make your stale claim the newest and overwrite theirs; the other session's next write (heartbeat or close) is newer and settles it everywhere. Move to the next row. If the pull reports no auto-merge of your bead, push again.
+- Verified on bd 1.2.1 (2026-09-23): a sequential claim is refused across clones after a pull; a simultaneous claim is auto-merged last-write-wins, with the notice above.
 
 **Progress** (`/checkpoint`). `bd note <id> "<done / left>" --actor ...` and `bd heartbeat <id> --actor ...`.
 

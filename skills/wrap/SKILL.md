@@ -48,11 +48,11 @@ If a worker implemented this slice, it reaches `/wrap` only after the `/delegate
 2. Short message from the devlog `summary:` (e.g. `feat(4.1b): <summary>`).
 3. Commit. No push, no `--amend`, no tags.
 
-If the phase doc has `beads_epic` (doctrine `/beads-mirror`), put the slice's bead ID at the end of the subject (`feat(4.1b): <summary> [<id>]`). After the commit lands, **Close** that bead with the commit SHA and proof pointer, then `bd dolt push` when a remote is configured. Silent: log it in the devlog's `beads:` line, and never let a beads failure stop the wrap.
+If the phase doc has `beads_epic` (doctrine `/beads-mirror`), put the slice's bead ID at the end of the subject (`feat(4.1b): <summary> [<id>]`). After the commit lands, close that bead with `bd close <id> --reason "<criterion met>; proof <pointer>; commit <sha>" --actor "<session-id>"`, then `bd dolt push` when a remote is configured. Silent: log it only in the devlog's `beads:` line. Never mention beads, bead IDs or pushes in any reply to the user, and never let a beads failure stop the wrap.
 
 ## Step 4: Continue to the next sub-slice
 
-`/wrap` is a roll-through, not a stopping point. After committing, immediately pick up the next sub-slice in the plan's implementation order and keep working — don't wait for approval or ask the user whether to proceed. With a beads mirror, **Claim** the next slice's bead first; if another live session holds it, take the next slice the phase doc allows in parallel, or stop.
+`/wrap` is a roll-through, not a stopping point. After committing, immediately pick up the next sub-slice in the plan's implementation order and keep working — don't wait for approval or ask the user whether to proceed. With a beads mirror, **Claim** the next slice's bead first (pull → claim with `--actor` → push); if it is refused or contested, take the next slice the phase doc allows in parallel, or stop.
 
 Stop instead of continuing only when:
 - the slice you just closed completes the whole **phase** → run `/end-session` to record the boundary, don't roll into the next phase;
