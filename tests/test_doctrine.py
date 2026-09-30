@@ -36,10 +36,11 @@ def test_delegate_has_fallback_and_head_check(repo_root):
         assert needle in text, needle
 
 
-def test_tier_check_refuses_fallback_and_labels_codex_unverified(repo_root):
+def test_tier_check_refuses_fallback_and_names_the_codex_shape(repo_root):
     _, text = skill(repo_root, "tier-check")
     assert "Do not fall back" in text
-    assert "unverified" in text
+    assert "agent_role" in text and "turn_context" in text
+    assert "Older single-file rollouts" in text
 
 
 def test_tier_check_skill_dispatches_both_roles_with_markers(repo_root):
@@ -106,7 +107,7 @@ def test_audit_playbooks_uses_scouts_not_explore(repo_root):
 def test_docs_mention_delegate_and_tier_check(repo_root):
     readme = (repo_root / "README.md").read_text(encoding="utf-8")
     assert "`/delegate`" in readme and "`/tier-check`" in readme
-    assert "Codex path unverified" in readme
+    assert "Codex multi_agent v2" in readme
     workflow = (repo_root / "WORKFLOW.md").read_text(encoding="utf-8")
     assert "scout" in workflow and "worker" in workflow and "check protocol" in workflow
     assert "cannot restrict Bash per command" in workflow
