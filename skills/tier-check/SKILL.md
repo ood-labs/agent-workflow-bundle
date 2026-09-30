@@ -32,7 +32,7 @@ Run the checker that ships with `/delegate` (path relative to that skill's base 
   `python <delegate base dir>/scripts/tier-check.py --runner claude --since <timestamp> --expect scout=claude-sonnet- --expect worker=claude-sonnet- --main claude-fable-`
 - Codex:
   `python <delegate base dir>/scripts/tier-check.py --runner codex --since <timestamp> --expect scout=gpt-6-luna --expect worker=gpt-6-luna --main gpt-6-astra`
-  The Codex path is unverified against a real rollout: real rollouts keep spawned threads inside the parent file, and the checker cannot yet attribute a role there. Expect a FAIL that lists the spawned-thread models it saw; that is honest, not a pass.
+  Verified against a real Codex run (multi_agent v2, 2026-09-29): each spawned agent is its own rollout file whose `session_meta` names its `agent_role`, and the checker reads the model from `turn_context`. Older single-file rollouts carry no role record; there the checker still FAILs and lists the spawned-thread models it saw.
 
 The `--main` prefix is whichever frontier model your session actually runs; check it rather than assuming, since the session model can change mid-run. The checker exits 0 only when both roles have a fresh transcript on the expected prefix and the session is on the frontier prefix; missing evidence is a FAIL.
 

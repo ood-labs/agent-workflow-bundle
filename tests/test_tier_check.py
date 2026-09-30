@@ -126,7 +126,7 @@ def test_codex_single_file_rollout_reports_spawned_models(repo_root, tmp_path):
     assert scan["codex_spawned_models"] == ["gpt-5.6-sol", "gpt-6-luna"]
     ok, problems = m.evaluate(scan, {"scout": "gpt-6-luna"}, "gpt-6-astra", runner="codex")
     assert not ok
-    assert any("unverified" in p and "gpt-6-luna" in p for p in problems)
+    assert any("unattributed" in p and "gpt-6-luna" in p for p in problems)
 
 
 def test_codex_scan_finds_roles_and_parent(repo_root, tmp_path):
@@ -148,6 +148,56 @@ def test_codex_scan_finds_roles_and_parent(repo_root, tmp_path):
     assert scan["agents"]["scout"] == ["gpt-6-luna"]
     assert scan["agents"]["worker"] == ["gpt-6-luna"]
     assert "gpt-6-astra" in scan["main"]
+
+
+def make_codex_v2_tree(tmp_path, child_model="gpt-6-luna", parent_model="gpt-6-astra"):
+    """The multi_agent v2 shape read off a real LEVOCHKA rollout, 2026-09-29: one file per
+    thread; the child names its role in session_meta; the model is turn_context.model;
+    provenance.model names the PARENT's model even in a child file (the trap)."""
+    day = tmp_path / "sessions" / "2026" / "09" / "29"
+    prov = {"provenance": {"model": parent_model}}
+    jl(day / "rollout-parent.jsonl", [
+        {"type": "session_meta", "payload": {"id": "p", "source": "vscode", "thread_source": "user", "base_instructions": prov}},
+        {"type": "turn_context", "payload": {"model": parent_model}},
+        {"type": "response_item", "payload": {"type": "message", "role": "user",
+         "content": [{"type": "input_text", "text": "spawn ROLE:scout and ROLE:worker"}]}},
+    ])
+    for cid, role in (("c1", "scout"), ("c2", "worker")):
+        jl(day / f"rollout-{cid}.jsonl", [
+            {"type": "session_meta", "payload": {"id": cid, "parent_thread_id": "p", "thread_source": "subagent",
+             "agent_role": role, "base_instructions": prov,
+             "source": {"subagent": {"thread_spawn": {"parent_thread_id": "p", "agent_role": role}}}}},
+            {"type": "turn_context", "payload": {"model": child_model}},
+        ])
+    return tmp_path / "sessions"
+
+
+def test_codex_v2_threads_attribute_role_from_session_meta(repo_root, tmp_path):
+    m = load(repo_root)
+    scan = m.scan_codex(make_codex_v2_tree(tmp_path), since_ts=0)
+    assert scan["agents"] == {"scout": ["gpt-6-luna"], "worker": ["gpt-6-luna"]}
+    assert scan["main"] == ["gpt-6-astra"]
+    ok, problems = m.evaluate(scan, {"scout": "gpt-6-luna", "worker": "gpt-6-luna"}, "gpt-6-astra", runner="codex")
+    assert ok, problems
+
+
+def test_codex_v2_ignores_provenance_model(repo_root, tmp_path):
+    # If provenance.model (always the parent's) were read, a frontier-model child would look
+    # right and a cheap child would look wrong; the child's turn_context must decide.
+    m = load(repo_root)
+    scan = m.scan_codex(make_codex_v2_tree(tmp_path, child_model="gpt-6-astra"), since_ts=0)
+    ok, problems = m.evaluate(scan, {"scout": "gpt-6-luna", "worker": "gpt-6-luna"}, "gpt-6-astra", runner="codex")
+    assert not ok and any("scout" in p and "gpt-6-astra" in p for p in problems)
+
+
+def test_codex_v2_cli_negative_control_names_the_model(repo_root, tmp_path):
+    sessions = make_codex_v2_tree(tmp_path)
+    base = [sys.executable, str(repo_root / "skills/delegate/scripts/tier-check.py"), "--runner", "codex",
+            "--since", "1970-01-01T00:00:00", "--codex-sessions-dir", str(sessions), "--main", "gpt-6-astra"]
+    ok = subprocess.run(base + ["--expect", "scout=gpt-6-luna", "--expect", "worker=gpt-6-luna"], capture_output=True, text=True)
+    assert ok.returncode == 0, ok.stdout + ok.stderr
+    bad = subprocess.run(base + ["--expect", "scout=gpt-6-sol", "--expect", "worker=gpt-6-luna"], capture_output=True, text=True)
+    assert bad.returncode == 1 and "gpt-6-luna" in bad.stdout
 
 
 def test_cli_exit_codes_positive_and_negative_control(repo_root, tmp_path):

@@ -13,8 +13,10 @@ model string starts with the expected prefix, and the main/parent model starts w
 --main. Otherwise exit 1 and print one FAIL line per problem, naming the model seen.
 Missing evidence is a FAIL, never a pass.
 
-Roles are identified by a `ROLE:<name>` marker in the agent's first user message;
-the /tier-check skill puts that marker in every prompt it dispatches.
+Roles are identified by the runner's own record where it has one (Codex multi_agent
+v2: `session_meta.agent_role` of the spawned thread's file), otherwise by a
+`ROLE:<name>` marker in the agent's first user message; the /tier-check skill puts
+that marker in every prompt it dispatches.
 Standard library only.
 """
 
@@ -138,22 +140,70 @@ def scan_claude(projects_dir, project_key, since_ts):
     return out
 
 
+def _codex_session_meta(fp):
+    for row in iter_jsonl(fp):
+        if row.get("type") == "session_meta":
+            return row.get("payload") or {}
+    return None
+
+
+def _scan_codex_threaded(fp, meta, since_ts, out):
+    """multi_agent v2 rollouts (verified on a real Codex run, 2026-09-29): every thread
+    is its own file. A spawned agent's `session_meta` carries `thread_source: subagent`
+    and `agent_role` (the installed definition's name, e.g. scout); the parent carries
+    `thread_source: user`. The model a thread ran on is `turn_context.payload.model`.
+    `session_meta.base_instructions.provenance.model` names the PARENT's model even in
+    a child file, so it is never read as evidence.
+    """
+    source = meta.get("source")  # a plain string ("vscode", "cli") on a user thread
+    subagent = source.get("subagent") if isinstance(source, dict) else None
+    spawn = (subagent.get("thread_spawn") if isinstance(subagent, dict) else None) or {}
+    role = meta.get("agent_role") or spawn.get("agent_role")
+    is_child = meta.get("thread_source") == "subagent" or bool(spawn)
+    models, marker = [], None
+    for row in iter_jsonl(fp):
+        payload = row.get("payload") or {}
+        if row.get("type") == "turn_context":
+            row_ts = _row_ts(row)
+            if row_ts is not None and row_ts < since_ts:
+                continue
+            if payload.get("model"):
+                models.append(payload["model"])
+        elif marker is None and payload.get("type") == "message" and payload.get("role") == "user":
+            marker = _find_role(_text_of(payload.get("content")))
+    if not models:
+        return
+    if is_child:
+        role = role or marker
+        if role:
+            out["agents"].setdefault(role, []).extend(sorted(set(models)))
+        else:
+            for m in models:
+                if m not in out["codex_spawned_models"]:
+                    out["codex_spawned_models"].append(m)
+    else:
+        out["main"].extend(sorted(set(models)))
+
+
 def scan_codex(sessions_dir, since_ts):
     """Scan Codex rollout JSONL files.
 
-    A real rollout on this machine is ONE file with ONE thread_id; a spawned thread
-    shows up as an additional `thread_settings_applied` row in that same file, not as
-    a separate file. So per file: the first `thread_settings_applied` model is that
-    file's main/parent model; every later one that differs is a spawned-thread model,
-    recorded (deduplicated, in order) under the top-level `codex_spawned_models` list
-    so a FAIL can name what it actually saw. The ROLE: marker attribution below is
-    kept because it may work for some rollout shapes, but it is not relied on.
+    Two shapes. Current Codex (multi_agent v2) writes one file per thread and names the
+    role in `session_meta`; see _scan_codex_threaded. An older shape kept every thread
+    in ONE file, a spawned thread showing up as an additional `thread_settings_applied`
+    row; there the first model is the parent's and every later one that differs is a
+    spawned-thread model, recorded under `codex_spawned_models` so a FAIL can name what
+    it saw, and roles come only from a ROLE: marker, which that shape rarely carries.
     """
     out = {"main": [], "agents": {}, "codex_spawned_models": []}
     for dirpath, _, files in os.walk(str(sessions_dir)):
         for f in files:
             fp = os.path.join(dirpath, f)
             if not f.endswith(".jsonl") or os.path.getmtime(fp) < since_ts:
+                continue
+            meta = _codex_session_meta(fp)
+            if meta is not None and "thread_source" in meta:
+                _scan_codex_threaded(fp, meta, since_ts, out)
                 continue
             models, role, spawns = [], None, False
             for row in iter_jsonl(fp):
@@ -192,8 +242,8 @@ def evaluate(scan, expects, main_prefix, runner=None):
             if runner == "codex":
                 spawned = scan.get("codex_spawned_models", [])
                 problems.append(
-                    f"FAIL {role}: no Codex transcript carries ROLE:{role}; Codex rollout parsing is "
-                    f"unverified against a real rollout (spawned-thread models seen: {spawned})"
+                    f"FAIL {role}: no Codex thread newer than --since has agent_role {role} or ROLE:{role} "
+                    f"(unattributed spawned-thread models seen: {spawned})"
                 )
             else:
                 problems.append(f"FAIL {role}: no transcript newer than --since carries ROLE:{role}")
