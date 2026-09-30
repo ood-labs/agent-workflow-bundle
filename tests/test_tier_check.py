@@ -200,6 +200,33 @@ def test_codex_v2_cli_negative_control_names_the_model(repo_root, tmp_path):
     assert bad.returncode == 1 and "gpt-6-luna" in bad.stdout
 
 
+def test_codex_v2_main_is_the_spawning_turn_even_before_since(repo_root, tmp_path):
+    # Reproduces the LEVOCHKA FAIL of 2026-09-29: /tier-check takes --since inside the
+    # turn that spawns the agents, so the parent's turn_context predates it. The parent
+    # must still count through the child's root_turn_id; an older parent turn that
+    # spawned nothing must stay excluded by --since.
+    m = load(repo_root)
+    since_ts = time.time()
+    iso = lambda d: dt.datetime.fromtimestamp(since_ts + d, dt.timezone.utc).isoformat().replace("+00:00", "Z")
+    day = tmp_path / "sessions" / "2026" / "09" / "29"
+    parent = day / "rollout-2026-09-29T22-18-47-p.jsonl"
+    jl(parent, [
+        {"type": "session_meta", "payload": {"id": "p", "source": "vscode", "thread_source": "user"}},
+        {"type": "turn_context", "timestamp": iso(-7200), "payload": {"turn_id": "T0", "model": "gpt-5-old"}},
+        {"type": "turn_context", "timestamp": iso(-30), "payload": {"turn_id": "T1", "root_turn_id": "T1", "model": "gpt-6-astra"}},
+    ])
+    os.utime(parent, (since_ts - 30, since_ts - 30))  # not flushed during the turn: mtime predates --since
+    for cid, role in (("c1", "scout"), ("c2", "worker")):
+        jl(day / f"rollout-{cid}.jsonl", [
+            {"type": "session_meta", "payload": {"id": cid, "parent_thread_id": "p", "thread_source": "subagent", "agent_role": role}},
+            {"type": "turn_context", "timestamp": iso(20), "payload": {"turn_id": cid + "t", "root_turn_id": "T1", "model": "gpt-6-luna"}},
+        ])
+    scan = m.scan_codex(tmp_path / "sessions", since_ts=since_ts)
+    assert scan["main"] == ["gpt-6-astra"]
+    ok, problems = m.evaluate(scan, {"scout": "gpt-6-luna", "worker": "gpt-6-luna"}, "gpt-6-astra", runner="codex")
+    assert ok, problems
+
+
 def test_cli_exit_codes_positive_and_negative_control(repo_root, tmp_path):
     make_claude_tree(tmp_path)
     base = [sys.executable, str(repo_root / "skills/delegate/scripts/tier-check.py"), "--runner", "claude",

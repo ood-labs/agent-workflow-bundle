@@ -147,42 +147,64 @@ def _codex_session_meta(fp):
     return None
 
 
-def _scan_codex_threaded(fp, meta, since_ts, out):
-    """multi_agent v2 rollouts (verified on a real Codex run, 2026-09-29): every thread
-    is its own file. A spawned agent's `session_meta` carries `thread_source: subagent`
-    and `agent_role` (the installed definition's name, e.g. scout); the parent carries
-    `thread_source: user`. The model a thread ran on is `turn_context.payload.model`.
-    `session_meta.base_instructions.provenance.model` names the PARENT's model even in
-    a child file, so it is never read as evidence.
+def _read_codex_thread(fp, meta):
+    """One multi_agent v2 rollout file (verified on a real Codex run, 2026-09-29): every
+    thread is its own file. A spawned agent's `session_meta` carries
+    `thread_source: subagent` and `agent_role` (the installed definition's name, e.g.
+    scout); the parent carries `thread_source: user`. The model a thread ran on is
+    `turn_context.payload.model`; a child's `turn_context.root_turn_id` is the parent
+    turn that spawned it. `session_meta.base_instructions.provenance.model` names the
+    PARENT's model even in a child file, so it is never read as evidence.
     """
     source = meta.get("source")  # a plain string ("vscode", "cli") on a user thread
     subagent = source.get("subagent") if isinstance(source, dict) else None
     spawn = (subagent.get("thread_spawn") if isinstance(subagent, dict) else None) or {}
-    role = meta.get("agent_role") or spawn.get("agent_role")
-    is_child = meta.get("thread_source") == "subagent" or bool(spawn)
-    models, marker = [], None
+    thread = {"child": meta.get("thread_source") == "subagent" or bool(spawn),
+              "role": meta.get("agent_role") or spawn.get("agent_role"),
+              "id": meta.get("id"),
+              "parent": meta.get("parent_thread_id") or spawn.get("parent_thread_id"),
+              "turns": [], "marker": None}
     for row in iter_jsonl(fp):
         payload = row.get("payload") or {}
-        if row.get("type") == "turn_context":
-            row_ts = _row_ts(row)
-            if row_ts is not None and row_ts < since_ts:
-                continue
-            if payload.get("model"):
-                models.append(payload["model"])
-        elif marker is None and payload.get("type") == "message" and payload.get("role") == "user":
-            marker = _find_role(_text_of(payload.get("content")))
-    if not models:
-        return
-    if is_child:
-        role = role or marker
+        if row.get("type") == "turn_context" and payload.get("model"):
+            thread["turns"].append({"model": payload["model"], "ts": _row_ts(row),
+                                    "turn_id": payload.get("turn_id"),
+                                    "root_turn_id": payload.get("root_turn_id")})
+        elif thread["marker"] is None and payload.get("type") == "message" and payload.get("role") == "user":
+            thread["marker"] = _find_role(_text_of(payload.get("content")))
+    return thread
+
+
+def _fresh(turn, since_ts):
+    return turn["ts"] is None or turn["ts"] >= since_ts
+
+
+def _fold_codex_threads(threads, since_ts, out):
+    """Children count by their own fresh turns. The parent counts by its fresh turns AND
+    by the turn that spawned a fresh child (matched on root_turn_id): /tier-check takes
+    its --since timestamp inside the very turn that spawns the agents, so that turn's
+    turn_context row always predates --since and a time filter alone drops it."""
+    spawning = set()
+    for t in threads:
+        if not t["child"]:
+            continue
+        fresh = [x for x in t["turns"] if _fresh(x, since_ts)]
+        if not fresh:
+            continue
+        spawning.update(x["root_turn_id"] for x in fresh if x["root_turn_id"])
+        models = sorted({x["model"] for x in fresh})
+        role = t["role"] or t["marker"]
         if role:
-            out["agents"].setdefault(role, []).extend(sorted(set(models)))
+            out["agents"].setdefault(role, []).extend(models)
         else:
             for m in models:
                 if m not in out["codex_spawned_models"]:
                     out["codex_spawned_models"].append(m)
-    else:
-        out["main"].extend(sorted(set(models)))
+    for t in threads:
+        if t["child"]:
+            continue
+        models = {x["model"] for x in t["turns"] if _fresh(x, since_ts) or x["turn_id"] in spawning}
+        out["main"].extend(sorted(models))
 
 
 def scan_codex(sessions_dir, since_ts):
@@ -196,14 +218,18 @@ def scan_codex(sessions_dir, since_ts):
     it saw, and roles come only from a ROLE: marker, which that shape rarely carries.
     """
     out = {"main": [], "agents": {}, "codex_spawned_models": []}
+    threads, older = [], {}
     for dirpath, _, files in os.walk(str(sessions_dir)):
         for f in files:
             fp = os.path.join(dirpath, f)
-            if not f.endswith(".jsonl") or os.path.getmtime(fp) < since_ts:
+            if not f.endswith(".jsonl"):
+                continue
+            if os.path.getmtime(fp) < since_ts:
+                older[f] = fp
                 continue
             meta = _codex_session_meta(fp)
             if meta is not None and "thread_source" in meta:
-                _scan_codex_threaded(fp, meta, since_ts, out)
+                threads.append(_read_codex_thread(fp, meta))
                 continue
             models, role, spawns = [], None, False
             for row in iter_jsonl(fp):
@@ -229,6 +255,17 @@ def scan_codex(sessions_dir, since_ts):
                 out["agents"].setdefault(role, []).extend(sorted(set(models)))
             else:
                 out["main"].append(main_model)
+    # A parent rollout is not flushed while its turn runs, so the file that spawned a
+    # fresh child can carry an mtime older than --since (seen on a real Codex run,
+    # 2026-09-29). Load each such parent by its thread id, whatever its mtime.
+    have = {t["id"] for t in threads}
+    for pid in sorted({t["parent"] for t in threads if t["child"] and t["parent"]} - have):
+        for name, fp in older.items():
+            if name.endswith(f"{pid}.jsonl"):
+                meta = _codex_session_meta(fp)
+                if meta is not None and "thread_source" in meta:
+                    threads.append(_read_codex_thread(fp, meta))
+    _fold_codex_threads(threads, since_ts, out)
     return out
 
 
