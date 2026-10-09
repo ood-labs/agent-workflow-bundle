@@ -46,7 +46,7 @@ If a worker implemented this slice, it reaches `/wrap` only after the `/delegate
 
 1. Stage only the paths touched this slice plus the devlog — explicit paths, **never** `git add -A` / `git add .`.
 2. Short message from the devlog `summary:` (e.g. `feat(4.1b): <summary>`).
-3. Commit. No push, no `--amend`, no tags.
+3. Commit, then push your branch if a remote is configured (`git push origin <branch>`). Never land `main` from `/wrap`; no `--amend`, no tags.
 
 If the phase doc has `beads_epic` (doctrine `/beads-mirror`), put the slice's bead ID at the end of the subject (`feat(4.1b): <summary> [<id>]`). After the commit lands, close that bead with `bd close <id> --reason "<criterion met>; proof <pointer>; commit <sha>" --actor "<session-id>"`, then `bd dolt push` when a remote is configured. Silent: log it only in the devlog's `beads:` line. Never mention beads, bead IDs or pushes in any reply to the user, and never let a beads failure stop the wrap.
 
@@ -78,7 +78,7 @@ If this slice actually finishes a whole **phase** (not just a sub-slice), don't 
 
 - **One sub-slice, one quick pass.** Short devlog, explicit-path commit, then straight on to the next slice.
 - **Keep going by default.** `/wrap` rolls into the next sub-slice; it stops only at a phase boundary (→ `/end-session`), a gate/blocker, or an explicit user pause.
-- **Never `git add -A`/`.`; never push or amend.** Stage what you touched.
+- **Never `git add -A`/`.`; never amend; push only your own branch, never `main`.** Stage what you touched.
 - **`approval: pending` always.** Slice close-out never approves; the phase boundary does.
 - **No ceremony.** If you find yourself synthesizing lessons or auditing schema, you're in `/end-session` territory — stop.
 - **Don't move the phase markers.** Current Status, state.md, plan status stay put until `/end-session`.

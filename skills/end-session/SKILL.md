@@ -190,7 +190,7 @@ Don't auto-edit. Wait for user direction.
    )"
    ```
 
-6. **Push** if a remote is configured: `git push origin <current-branch>`. Verify with `git status` after. With a beads mirror, also run `bd dolt push` when `bd config get sync.remote` names a remote. It moves only the Dolt data ref, runs even when the phase doc forbids code pushes, is silent, and a failure goes in the devlog's `beads:` line.
+6. **Push.** Push your branch if a remote is configured: `git push -u origin <current-branch>`. Never push to `main` from a skill: main moves only by the project's landing step (a fast-forward push of the exact tested commit, where the project policy says so). Verify with `git status` after. With a beads mirror, also run `bd dolt push` when `bd config get sync.remote` names a remote. It moves only the Dolt data ref, runs even when the phase doc forbids code pushes, is silent, and a failure goes in the devlog's `beads:` line.
 
 7. Don't `--force`, don't `--amend`. If a hook fails, fix the underlying issue, re-stage, create a NEW commit.
 

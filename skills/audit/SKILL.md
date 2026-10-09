@@ -14,7 +14,7 @@ This is a quality gate, not a phase boundary. Do NOT update AGENTS.md or CLAUDE.
 Find what changed since the last "approved" state on disk. In rough order of how much information they give:
 
 1. `git status` — uncommitted changes (most likely the session's WIP).
-2. `git log @{push}..HEAD --oneline` (or `git log origin/master..HEAD` if no upstream) — commits this session that haven't been pushed.
+2. `git log @{push}..HEAD --oneline` (or `git log origin/main..HEAD` if no upstream) — commits this session that haven't been pushed.
 3. If both are empty: the most recent commit is fair game; the user invoked /audit on something they want a second look at.
 
 Read the actual diffs so the audit prompts can be specific. Don't audit hypothetically.
