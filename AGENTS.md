@@ -165,7 +165,7 @@ When you add, rename, or materially change a skill, update **all three** in the 
 These are settled decisions — honor them when editing skills:
 
 - **AGENTS.md is canonical; CLAUDE.md is an `@AGENTS.md` import stub** — in this repo and in every project the bundle scaffolds. One file, one write, no mirror sync, no drift. Current Status and all shared content live in AGENTS.md only; the stub carries at most Claude-only rules. Legacy projects that still keep full content in CLAUDE.md are handled by the skills' "legacy" fallbacks, not by reviving the mirror pattern. Verify the import loaded with `/context` (the imported file must appear under **Memory files**).
-- **Machine-specific facts stay in the tracked AGENTS.md, machine-labeled** ("canonical tree on SIMANGO: `C:\...`") — never in per-machine edits to tracked files, which conflict on every pull.
+- **Machine-specific facts stay in the tracked AGENTS.md, machine-labeled** ("launch folder on SIMANGO: `C:\...`") — never in per-machine edits to tracked files, which conflict on every pull.
 - **No interactive prompts in skills.** Auto-synthesize from session evidence; never pause to ask for input the model could derive. (Exception: a genuinely unsettled, underivable decision.)
 - **`/end-session` always commits**, staging only files the model touched this session; it ignores unrelated dirty tree state.
 - **Goals are thin pointers.** `/slash-goal` produces a *short* completion-condition that references the phase doc; the plan carries the detail (sub-slices, pass criteria, gate tiers, pre-authorizations). Don't re-encode the plan into the goal.
