@@ -9,7 +9,7 @@ Look at the previous commit and see where we left off. Read everything you need 
 
 FETCH AND CHECK FIRST: run `git fetch origin` (read-only) so `origin/main` is current. If the repo has `tools/workspace_check.py`, run `python tools/workspace_check.py` before anything else; on `RESULT: workspace FAIL`, stop and tell the user to run `tools/setup-dev.ps1` in this folder (the project's setup skill explains each code). Do not work in an unconfigured folder.
 
-CAMPAIGN START (when the user says "start <campaign>" from the main folder): never switch the main folder's branch. Clone a new folder from GitHub (`git clone <origin url> C:\Standalone\<repo>-<campaign>`), run that repo's setup script there (`tools/setup-dev.ps1`), create the branch `lane/<campaign>-<topic>` in it, and tell the user which folder to open the campaign session in. The main folder stays on `main`.
+CAMPAIGN START (when the user says "start <campaign>" from the main folder): leave the main folder where it is (on `main`). Clone a new folder from GitHub (`git clone <origin url> C:\Standalone\<repo>-<campaign>`), run that repo's setup script there (`tools/setup-dev.ps1`), create the branch `lane/<campaign>-<topic>` in it, and tell the user which folder to open the campaign session in. The main folder stays on `main`.
 
 CONTEXT TO READ AT START:
 - Last commit (`git log -1`, `git show HEAD`) for what shipped most recently

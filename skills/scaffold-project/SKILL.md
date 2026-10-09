@@ -121,7 +121,7 @@ The `devlog-template.md`, `phase-template.md`, and `knowledge-template.md` stay 
 
 After scaffolding, verify the import in a Claude Code session with `/context` — `AGENTS.md` must appear under **Memory files**. Two more rules for AGENTS.md content:
 
-- **Machine-specific facts stay tracked and machine-labeled** ("canonical tree on {MACHINE}: `{path}`") — never handled by per-machine edits to tracked files, which conflict on every pull, and never split into untracked per-machine copies.
+- **Machine-specific facts stay tracked and machine-labeled** ("launch tree on {MACHINE}: `{path}`") — never handled by per-machine edits to tracked files, which conflict on every pull, and never split into untracked per-machine copies.
 - Genuinely Claude-only rules (skill triggers, plan-mode preferences) may go below the stub's comment in CLAUDE.md; anything both agents need goes in AGENTS.md.
 
 Follow this template for `AGENTS.md`:
