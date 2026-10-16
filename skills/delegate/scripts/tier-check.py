@@ -164,8 +164,17 @@ def _read_codex_thread(fp, meta):
               "id": meta.get("id"),
               "parent": meta.get("parent_thread_id") or spawn.get("parent_thread_id"),
               "turns": [], "marker": None}
+    active_id = thread["id"]
     for row in iter_jsonl(fp):
         payload = row.get("payload") or {}
+        # Forked rollouts embed parent history after their own leading metadata.
+        # A runner-owned settings event switches back to the executing child.
+        if row.get("type") == "session_meta":
+            active_id = payload.get("id")
+        elif payload.get("type") == "thread_settings_applied":
+            active_id = payload.get("thread_id", active_id)
+        if active_id != thread["id"]:
+            continue
         if row.get("type") == "turn_context" and payload.get("model"):
             thread["turns"].append({"model": payload["model"], "ts": _row_ts(row),
                                     "turn_id": payload.get("turn_id"),
@@ -207,7 +216,7 @@ def _fold_codex_threads(threads, since_ts, out):
         out["main"].extend(sorted(models))
 
 
-def scan_codex(sessions_dir, since_ts):
+def scan_codex(sessions_dir, since_ts, session_id=None):
     """Scan Codex rollout JSONL files.
 
     Two shapes. Current Codex (multi_agent v2) writes one file per thread and names the
@@ -265,6 +274,16 @@ def scan_codex(sessions_dir, since_ts):
                 meta = _codex_session_meta(fp)
                 if meta is not None and "thread_source" in meta:
                     threads.append(_read_codex_thread(fp, meta))
+    if session_id:
+        selected = {session_id}
+        while True:
+            expanded = selected | {t["id"] for t in threads if t["parent"] in selected}
+            if expanded == selected:
+                break
+            selected = expanded
+        threads = [t for t in threads if t["id"] in selected]
+        # Legacy records have no dependable thread ownership for scoped proof.
+        out = {"main": [], "agents": {}, "codex_spawned_models": []}
     _fold_codex_threads(threads, since_ts, out)
     return out
 
@@ -315,6 +334,7 @@ def main(argv):
     ap.add_argument("--claude-projects-dir", default=os.path.expanduser("~/.claude/projects"))
     ap.add_argument("--project-key", default=None)
     ap.add_argument("--codex-sessions-dir", default=os.path.expanduser("~/.codex/sessions"))
+    ap.add_argument("--session-id", help="Codex parent thread ID; exclude unrelated parallel sessions")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
 
@@ -334,7 +354,7 @@ def main(argv):
         key = a.project_key or default_project_key(os.getcwd())
         scan = scan_claude(a.claude_projects_dir, key, since_ts)
     else:
-        scan = scan_codex(a.codex_sessions_dir, since_ts)
+        scan = scan_codex(a.codex_sessions_dir, since_ts, a.session_id)
 
     ok, problems = evaluate(scan, expects, a.main, runner=a.runner)
     if a.json:

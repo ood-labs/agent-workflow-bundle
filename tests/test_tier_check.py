@@ -278,3 +278,37 @@ def test_default_project_key_matches_claude_format(repo_root):
     # A relative path must be resolved first, not encoded as-is.
     assert m.default_project_key("proj") == m.default_project_key(os.path.join(os.getcwd(), "proj"))
     assert m.default_project_key("proj").endswith("-proj")
+
+
+def test_codex_fork_excludes_inherited_parent_turns(repo_root, tmp_path):
+    m = load(repo_root)
+    sessions = make_codex_v2_tree(tmp_path)
+    child = sessions / "2026/09/29/rollout-c1.jsonl"
+    meta = json.loads(child.read_text().splitlines()[0])
+    jl(child, [meta,
+        {"type": "session_meta", "payload": {"id": "p", "thread_source": "user"}},
+        {"type": "turn_context", "payload": {"model": "gpt-6-astra"}},
+        {"type": "event_msg", "payload": {"type": "thread_settings_applied", "thread_id": "c1",
+         "thread_settings": {"model": "gpt-6-luna"}}},
+        {"type": "turn_context", "payload": {"model": "gpt-6-luna"}},
+    ])
+    scan = m.scan_codex(sessions, 0)
+    assert scan["agents"]["scout"] == ["gpt-6-luna"]
+    # A real wrong model after the child resumes must still fail.
+    with child.open("a") as f:
+        f.write(json.dumps({"type": "turn_context", "payload": {"model": "gpt-6-astra"}}) + "\n")
+    ok, problems = m.evaluate(m.scan_codex(sessions, 0), {"scout": "gpt-6-luna"}, "gpt-6-astra")
+    assert not ok and any("scout" in p and "gpt-6-astra" in p for p in problems)
+
+
+def test_codex_session_scope_excludes_parallel_threads(repo_root, tmp_path):
+    m = load(repo_root)
+    sessions = make_codex_v2_tree(tmp_path)
+    jl(sessions / "unrelated.jsonl", [
+        {"type": "session_meta", "payload": {"id": "other", "thread_source": "user"}},
+        {"type": "turn_context", "payload": {"model": "other-model"}},
+    ])
+    scan = m.scan_codex(sessions, 0, session_id="p")
+    assert m.evaluate(scan, {"scout": "gpt-6-luna", "worker": "gpt-6-luna"}, "gpt-6-astra")[0]
+    assert not m.evaluate(m.scan_codex(sessions, 0, session_id="absent"),
+                          {"scout": "gpt-6-luna"}, "gpt-6-astra")[0]
