@@ -1,7 +1,7 @@
 ---
 name: end-session
 description: End session - close devlog, run schema audit + lessons + state updates, optionally suggest slim or playbook extraction, commit.
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Bash(wc:*)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Bash(wc:*), Bash(bd:*)
 user-invocable: true
 ---
 
@@ -15,7 +15,7 @@ Multi-phase workflow. Each phase short. Skip silently if nothing to do.
 
 1. Glob `docs/devlogs/*.md` and find the most recent. Read it.
 2. Read `docs/state.md` if it exists.
-3. Read `AGENTS.md` and/or `CLAUDE.md` Current Status section.
+3. Read the `AGENTS.md` Current Status section. (CLAUDE.md is normally an `@AGENTS.md` import stub; read it only in legacy projects where it still carries full sections.)
 4. Run `git status` and `git diff --stat` to see what changed this session.
 5. Read the current phase doc from `docs/phases/` (most recent or referenced in state.md).
 
@@ -54,7 +54,7 @@ If a sub-phase (e.g., 4a, 4b) or full phase was completed this session:
 
 1. Set frontmatter `approval: approved` on the devlog.
 2. Update the phase doc's frontmatter `status:` to `approved`.
-3. Update `AGENTS.md` and `CLAUDE.md` Current Status sections, when present, to reflect the new active phase / sub-phase.
+3. Update the `AGENTS.md` Current Status section to reflect the new active phase / sub-phase. **Never add a Current Status (or any section) to a CLAUDE.md that is an `@AGENTS.md` import stub** — one edit to AGENTS.md reaches both agents. Update CLAUDE.md too only in legacy projects where it still duplicates full content.
 4. If the implementation plan's Phase Overview table tracks status, update the row.
 
 If we paused mid-sub-phase, leave `approval: pending`. Don't update Current Status to a new phase.
@@ -73,6 +73,15 @@ Walk the file. Update sections that shifted this session:
 Set frontmatter `updated:` to today.
 
 If no `docs/state.md` exists, skip silently. (It's optional.)
+
+## Phase 4b: Beads mirror
+
+Only if the phase doc's frontmatter has `beads_epic` (doctrine `/beads-mirror`). Otherwise skip silently. Everything here is silent: write what changed into the devlog's `beads:` line, never ask the user, never show it in the final report, and never let a failure stop the session.
+
+1. **File follow-ups**: each real piece of follow-up work in *Issues Encountered* / *Next Steps* becomes a child bead with `discovered-from` the current row's bead. Lessons still go to Phase 5, not beads.
+2. **Open claims**: a row this session claimed but didn't finish keeps its claim plus a `bd note`; a row being abandoned gets `bd unclaim`.
+3. **Phase boundary**: if Phase 3 approved the phase, close the epic. For each child still open, finish it, re-parent it to the next campaign's epic, or leave it open with its reason in the devlog line. Never `--force`.
+4. The Dolt push happens in Phase 10.
 
 ## Phase 5: Lessons check
 
@@ -181,7 +190,7 @@ Don't auto-edit. Wait for user direction.
    )"
    ```
 
-6. **Push** if a remote is configured: `git push origin <current-branch>`. Verify with `git status` after.
+6. **Push.** Push your branch if a remote is configured: `git push -u origin <current-branch>`. Never push to `main` from a skill: main moves only by the project's landing step (a fast-forward push of the exact tested commit, where the project policy says so). Verify with `git status` after. With a beads mirror, also run `bd dolt push` when `bd config get sync.remote` names a remote. It moves only the Dolt data ref, runs even when the phase doc forbids code pushes, is silent, and a failure goes in the devlog's `beads:` line.
 
 7. Don't `--force`, don't `--amend`. If a hook fails, fix the underlying issue, re-stage, create a NEW commit.
 

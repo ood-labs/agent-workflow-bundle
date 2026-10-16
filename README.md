@@ -15,7 +15,7 @@ flowchart TD
   D --> E[/spec-draft → spec.md/]
   E --> F[/scaffold-project/]
   F --> G[/formalize-plan/]
-  G --> H[/plan-audit · 4-agent gate/]
+  G --> H[/plan-audit · 5-scout gate/]
   H --> I[/slash-goal · short autonomous goal/]
   I --> J[/start-session/]
   J --> K{work loop}
@@ -45,12 +45,12 @@ The three closers, lightest to heaviest: **`/checkpoint`** (mid-work save, not a
         │
         ▼
  STAGE 2 · SCAFFOLD
-   /scaffold-project ──▶ AGENTS.md + CLAUDE.md, docs/, phases, skills, git
+   /scaffold-project ──▶ AGENTS.md + CLAUDE.md stub, docs/, phases, skills, git
         │
         ▼
  STAGE 3 · ACTIVE DEVELOPMENT   ◀─────────────────────────┐  (repeat per phase)
    /formalize-plan ──▶ /plan-audit ──▶ /slash-goal         │
-   (plan → phase doc)  (4-agent gate)  (short autonomous   │
+   (plan → phase doc)  (5-scout gate)  (short autonomous   │
         │                               goal, optional)    │
         ▼                                                  │
    /start-session                                          │
@@ -100,12 +100,15 @@ These skills are intended to be user-invoked explicitly.
 | `/start-session` | Review last commit, read state.md, check most recent devlog frontmatter for `approval` status, audit next task plan, start work |
 | `/checkpoint` | Save mid-work progress with devlog and commit, no phase approval |
 | `/wrap` | Lightweight sub-phase close-out: short devlog (`status: complete`, `approval: pending`) + explicit-path commit, then move on. No `/end-session` ceremony. Heavier than `/checkpoint`, far lighter than `/end-session` — for rolling through sub-slices fast. |
-| `/plan-audit` | Pre-implementation 4-agent audit (spec-alignment, acceptance-bar/proof-altitude, toolchain-feasibility, sub-phase decomposition); the acceptance-bar agent flags pass criteria a mock/placeholder could clear. Applies a best-guess fix for every finding and flags the judgement calls to review/revert. Run after `/formalize-plan`, before starting work. |
-| `/audit` | Post-implementation 3-agent quality gate (code, spec, test) with safe fixes applied |
+| `/plan-audit` | Pre-implementation 5-scout audit (spec-alignment, acceptance-bar/proof-altitude, toolchain-feasibility, sub-phase decomposition, in-repo truth/reuse); the acceptance-bar agent flags pass criteria a mock/placeholder could clear (optionally pre-screened by Jev via the bundled `scripts/proof-altitude.py` when `TYPESAFE_API_KEY` is set). Applies a best-guess fix for every finding and flags the judgement calls to review/revert. Run after `/formalize-plan`, before starting work. |
+| `/audit` | Post-implementation 3-scout quality gate (code, spec, test) with safe fixes applied |
 | `/end-session` | Phase boundary: close devlog, schema audit, lessons prompt, state.md update, optional slim/playbook nudges, commit |
 | `/find-session` | Inspect previous Claude Code or Codex session transcripts where supported |
 | `/formalize-plan` | Turn a plan-mode plan into phase docs and implementation plan updates |
 | `/slash-goal` | Author a **short** completion-condition for the built-in `"slash goal"` command that points at the phase doc as the contract and drives it end-to-end — `$start-session` / `$audit` / `$end-session` bookended, proof-first, explicit-paths-only, anti-stall, stopping only at the doc's hard blockers. The detail (pass criteria + the Autonomy section's gate tiers and pre-authorizations) lives in the phase doc, so the goal stays terse. Run after `/formalize-plan`, before starting work. |
+| `/delegate` | The model-tiering doctrine: cheap-tier `scout` agents read and report, cheap-tier `worker` agents implement one sub-slice each, the session judges, Jev screens each handoff. Other skills cite it. |
+| `/beads-mirror` | Doctrine for mirroring a formalized campaign into beads: one epic per campaign, one bead per row, a per-session claim so parallel sessions can't take the same row, and a view other people can read. Commits and the campaign doc stay the truth. Fully automatic and silent, opt-in per campaign via `beads_epic` in the phase doc. The session skills cite it; `/beads-mirror adopt <phase-doc>` opts an existing campaign in. |
+| `/tier-check` | Proves which model each delegated agent ran on (verified on Claude Code and on Codex multi_agent v2 rollouts, including inherited parent history): spawns a scout and a worker, then asserts from the runner's transcripts which model each ran on, with a mandatory negative control. |
 
 ### Planning, project bootstrap, knowledge
 
@@ -115,12 +118,12 @@ User-invocable. Agents may also auto-trigger when the description matches the co
 |-------|---------|
 | `/research-prompt` | Write a research-question document for deep external investigation (Gemini Deep Research, etc.) |
 | `/spec-draft` | Generate `docs/design/spec.md` from research + conversation. Full mode (Sentinel-2 style, 15+ sections) or lite mode (8-10 sections). |
-| `/scaffold-project` | Bootstrap a new project with full development system (AGENTS.md + CLAUDE.md, implementation plan, phase docs, knowledge base, code skeleton, MCP co-development surface for non-web apps) |
+| `/scaffold-project` | Bootstrap a new project with full development system (canonical AGENTS.md + CLAUDE.md `@AGENTS.md` import stub, implementation plan, phase docs, knowledge base, code skeleton, MCP co-development surface for non-web apps) |
 | `/slim-agent-md` | Refactor bloated AGENTS.md / CLAUDE.md files into knowledge files, lessons.md, or new skills. Hard ceiling 40K chars, target 20-25K. |
 | `/slim-claude-md` | Backward-compatible alias for older Claude Code projects. |
 | `/lookup` | Search project `docs/knowledge/` AND global playbooks by keyword |
 | `/extract-playbook` | Distill cross-project content into the global playbook library |
-| `/audit-playbooks` | Walk the playbook library, flag stale entries, optionally Explore-agent-verify against current docs |
+| `/audit-playbooks` | Walk the playbook library, flag stale entries, optionally spawn one scout per playbook to verify against current docs |
 
 ## Playbooks
 
@@ -167,9 +170,9 @@ See `WORKFLOW.md` for the full pipeline. The short version:
 3. Discuss findings with the agent.
 4. `/spec-draft` to lock in architecture decisions in `docs/design/spec.md`.
 5. `/scaffold-project` to create the project folder, plan, and code skeleton.
-6. Open Codex or Claude Code in the new project. After `/formalize-plan` for each new phase, optionally `/plan-audit` before starting work.
+6. Open Codex or Claude Code in the new project. After `/formalize-plan` for each new phase, optionally `/plan-audit` before starting work. Run `/tier-check` once after install so you know the cheap tier is actually being used.
 7. Use `/start-session`, `/checkpoint`, `/audit`, `/end-session` to manage sessions. `/find-session` to inspect prior session transcripts.
-8. As AGENTS.md or CLAUDE.md grows past 25K chars, run `/slim-agent-md`.
+8. As AGENTS.md grows past 25K chars (CLAUDE.md is an import stub and never grows), run `/slim-agent-md`.
 9. When you spot a recurring cross-project pattern, run `/extract-playbook`.
 
 ## When to use MCP co-development

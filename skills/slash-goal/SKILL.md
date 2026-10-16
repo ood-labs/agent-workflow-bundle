@@ -38,7 +38,7 @@ Match the user's ask. One phase, several phases, or the rest of the project — 
 
 ### Step 2: Confirm the phase doc can carry the goal
 
-Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlog). Verify it has: bounded sub-slices with **pass criteria**, the **proof method / testability contract**, and an **Autonomy & human-in-the-loop** section with the gate tiers + pre-authorizations. If any is missing:
+Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlog). Verify it has: bounded sub-slices with **pass criteria**, the **proof method / testability contract**, an **Autonomy & human-in-the-loop** section with the gate tiers + pre-authorizations, and a **Delegation** section naming which sub-slices a worker may take with their allowed files and test commands. If any is missing:
 
 - Prefer to fix the **doc** (or tell the user it needs `/formalize-plan` to add the Autonomy section).
 - If the user already pre-authorized decisions in conversation that the doc doesn't carry, either add them to the doc or, as a stopgap, inline just those one-liners in the goal. Only surface a decision to the user if it's genuinely unsettled and you can't derive it — otherwise make the call, note it, and move on. Don't interrogate the user to author a goal.
@@ -48,7 +48,7 @@ Read the phase doc (and `docs/implementation-plan.md` current edge, latest devlo
 Write a terse, doc-referencing condition — a few sentences, emitted as **one unbroken line** (no hard line breaks inside it). Default shape (Codex `$` form):
 
 ```
-Complete <Phase N> from current HEAD. Open with $start-session and use docs/phases/<doc>.md as the contract with the latest devlog as current state. Do not start <next phase>. Execute end-to-end, proof-first, with focused tests and the phase's proof artifact. Close each sub-slice with $wrap and run $audit then a final $end-session at phase end. Stage explicit paths only; no git add -A, no push. Never let a permission prompt stall the loop — use auto-approved command forms and, on denial, switch to an allowed equivalent and continue. Stop only for a real hard blocker.
+Complete <Phase N> from current HEAD. Open with $start-session and use docs/phases/<doc>.md as the contract with the latest devlog as current state. Do not start <next phase>. Execute end-to-end, proof-first, with focused tests and the phase's proof artifact. Delegate sub-slices per the doc's Delegation section and verify each per the delegate check protocol before closing it. Close each sub-slice with $wrap and run $audit then a final $end-session at phase end. Stage explicit paths only; no git add -A, no push. Never let a permission prompt stall the loop — use auto-approved command forms and, on denial, switch to an allowed equivalent and continue. Stop only for a real hard blocker.
 ```
 
 Drop anything the phase doc already states — don't re-encode sub-slice order, pass criteria, or the per-slice ritual, which the doc and the wrap command already own. The rails below stay regardless of length.
@@ -58,7 +58,7 @@ Drop anything the phase doc already states — don't re-encode sub-slice order, 
 - **Default (unspecified) → Codex `$` form.** Write `$start-session`, `$wrap`, `$audit`, `$end-session`. In this form **every `$` token MUST be flanked by spaces** — never put a comma, period, semicolon, or any other character directly against it (`$wrap,` / `$audit.` / `$end-session;` won't parse). Phrase so each token is *followed by a space and a word* (`... with $wrap and run $audit then a final $end-session at phase end`), not by punctuation.
 - **Claude Code (only when the user asks — e.g. "for claude", "claude format", "slashes") → `/` form.** Write `/start-session`, `/wrap`, `/audit`, `/end-session`. Punctuation adjacency is fine here (`/wrap;` parses).
 
-The non-negotiable rails: open with the session-start command, the phase doc as the contract, "don't start the next phase," proof-first, per-slice close with the wrap command, audit + end-session at phase end, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
+The non-negotiable rails: open with the session-start command, the phase doc as the contract, "don't start the next phase," proof-first, per-slice close with the wrap command, delegation per the Delegation section with the check protocol, audit + end-session at phase end, explicit-paths-only / no `git add -A` / no push, the anti-stall behavior, and "stop only for a real hard blocker."
 
 ### Step 4: Return the goal — and nothing else
 
@@ -67,13 +67,14 @@ Output **only** the goal, as a single unbroken line inside one fenced code block
 ## Rules
 
 1. **Keep the goal short — the phase doc is the contract.** Reference the doc; don't re-encode sub-slices, pass criteria, or gate detail that lives there. A goal that needs scrolling is a smell.
-2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first, per-slice `$wrap`, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
+2. **Always keep the rails.** `$start-session`, the doc reference, "don't start the next phase," proof-first, per-slice `$wrap`, delegation per the doc's Delegation section with the check protocol before each close, `$audit` + `$end-session` at phase end, explicit-paths-only / no `git add -A` / no push, anti-stall, and "stop only for a real hard blocker" stay in every goal regardless of length.
 3. **A permission prompt must never halt the loop.** Auto-approved command forms only; on denial, switch to an allowed equivalent and continue. This is the most common way an overnight run dies.
 4. **Gates are decided in the plan.** Self-serve / conditional-proceed / hard-stop and the pre-authorizations belong in the phase doc's Autonomy section; the goal just points there. If a decision is genuinely unsettled, surface it; otherwise make the call and proceed — don't interrogate the user.
 5. **Match the reach to the ask.** Single phase or several — name the span and the stop line.
 6. **Prove in-transcript — but transcript-observable is not the same as feature-proven.** The evaluator only reads the conversation, so the proof must be visible there (test output, MCP readback, screenshot, commit line, devlog frontmatter). The trap: a readback or a screenshot of placeholder text is transcript-observable and proves nothing. For a user-facing feature, the doc's proof method must *exercise the feature the way a user would* and **assert on captures** (vision_eval on what the image must contain), not just produce them. If the phase doc's pass criteria are all readback-shaped, that's a plan defect — surface it (it's what `/plan-audit`'s acceptance-bar agent catches), don't drive a goal that will clear a mock.
 7. **Match workflow-command syntax to the target runner.** Default to Codex `$` form (`$start-session`, `$wrap`, `$audit`, `$end-session`) with **every `$` token flanked by spaces — never touching a comma, period, or semicolon**, or Codex won't parse it. Only when the user asks for Claude Code ("for claude", "slash format") use `/` form instead, where punctuation adjacency is fine. (MCP paths and shell commands keep their real syntax in both.)
 8. **Output only the goal — one unbroken line, nothing else.** A single fenced block with no internal line breaks, no surrounding prose, no command line. Never a file. Generate, don't run.
+9. **"No landing" means main.** The rail forbids landing `main` and pushing tags; pushing the loop's own branch is expected (one push rule across the bundle: commit on your branch, push your branch, land main only by the project's fast-forward step). A campaign mirrored into beads (`beads_epic` in its phase doc) still syncs its Dolt data ref from `$wrap` / `$end-session`. That isn't a code push, and the goal needn't mention beads at all (doctrine `/beads-mirror`).
 
 ## What NOT to do
 

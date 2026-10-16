@@ -60,7 +60,7 @@ Once you have a clear direction (and optionally a spec), invoke `/scaffold-proje
 - Whether to scaffold MCP co-development infrastructure
 - Relevant playbooks from the global library to surface
 
-The agent builds the full project: `AGENTS.md`, a Claude Code compatibility `CLAUDE.md`, `docs/SCHEMA.md` (frontmatter contract), `docs/implementation-plan.md`, phase docs with frontmatter, knowledge base index, `docs/state.md`, `docs/lessons.md`, code skeleton, `.gitignore`, git init, optional GitHub publish.
+The agent builds the full project: `AGENTS.md` (canonical), a `CLAUDE.md` `@AGENTS.md` import stub, `docs/SCHEMA.md` (frontmatter contract), `docs/implementation-plan.md`, phase docs with frontmatter, knowledge base index, `docs/state.md`, `docs/lessons.md`, code skeleton, `.gitignore`, git init, optional GitHub publish.
 
 If a `docs/design/spec.md` exists from `/spec-draft`, the implementation plan derives from it.
 
@@ -78,17 +78,23 @@ Open Codex or Claude Code in the new project folder.
 
 ### `/formalize-plan` (after plan mode)
 
-After plan-mode planning, formalize the plan into project docs. Writes `docs/phases/phase-{N}-{slug}.md` with proper frontmatter, updates `docs/implementation-plan.md` Phase Overview table, updates `AGENTS.md` and `CLAUDE.md` Current Status. Commits as `docs(plan): Phase N - Title`.
+After plan-mode planning, formalize the plan into project docs. Writes `docs/phases/phase-{N}-{slug}.md` with proper frontmatter, updates `docs/implementation-plan.md` Phase Overview table, updates `AGENTS.md` Current Status (CLAUDE.md is an import stub — one edit reaches both agents). Commits as `docs(plan): Phase N - Title`.
 
 ### `/plan-audit` (optional, before starting a new phase)
 
-For phases that involve new libraries, multi-week effort, or architectural commitments, run `/plan-audit` after `/formalize-plan` and before `/start-session`. Four parallel Explore agents check:
+For phases that involve new libraries, multi-week effort, or architectural commitments, run `/plan-audit` after `/formalize-plan` and before `/start-session`. Five parallel scouts check:
 - Spec alignment: does the plan deliver what the spec / research says is needed, and are the pass criteria as strong as the governing spec section (citing a spec is not verifying against it)?
-- Acceptance-bar / proof-altitude: could a mock satisfy these pass criteria? Flags any user-facing feature whose criteria are all readback / log / "artifact exists" / "screenshot captured" with no visible/behavioral/executing gate that's false unless the experience exists — the failure mode where a placeholder build passes every proof green.
+- Acceptance-bar / proof-altitude: could a mock satisfy these pass criteria? Flags any user-facing feature whose criteria are all readback / log / "artifact exists" / "screenshot captured" with no visible/behavioral/executing gate that's false unless the experience exists — the failure mode where a placeholder build passes every proof green. If `TYPESAFE_API_KEY` is set, the skill first runs its bundled `scripts/proof-altitude.py`, which asks Jev (TypeSafe System One) for a calibrated mock-can-pass probability and altitude score per criterion and hands the REWRITE / READ / OK table to this agent. Without the key it silently falls back to the prose rubric.
 - Toolchain feasibility: do the libraries / APIs exist and behave as the plan assumes?
 - Sub-phase decomposition: are sub-phases independently verifiable, dependencies explicit?
+- In-repo truth / reuse: is every claim the plan makes about this codebase true, and does a registered test already cover what it proposes?
 
 Applies a best-guess fix to the plan doc for every finding it can — derived fixes (missing pass criteria, unnamed dependencies, corrected version assumptions, mega-phase splits) and judgement calls (dropping an untraceable deliverable, picking a replacement library, covering a spec gap) alike — then reports what it changed, flagging the judgement calls with the alternative so you can revert any in one step. Only genuinely-unguessable findings are left as open questions. Skip for routine sub-phases.
+
+### Model tiers (every stage)
+
+The skills that spawn agents spawn cheap-tier **scouts** (Claude Code `sonnet`, Codex `gpt-6-luna`) to read and report; a slash-goal campaign hands delegable sub-slices to cheap-tier **workers** to implement. The session itself is the only judge, on whatever frontier model it runs: it synthesizes scout reports, and it verifies every worker diff through the **check protocol** (scope diff, tests it ran itself, Jev diff-risk ordering, every hunk read, accept or re-dispatch, max two retries) before `/wrap`. Jev screens at each handoff so the judge reads the risky items first and never auto-applies a low-confidence finding. Doctrine in `/delegate`; proof in `/tier-check`. On Claude Code the worker's git ban is prose plus the check protocol (tool lists cannot restrict Bash per command). The Codex tier check is unverified until run in a real Codex session.
+Codex proof excludes inherited parent turns; `--session-id` confines a check to one session and its descendants.
 
 ### `/slash-goal` (optional, to run a phase autonomously)
 
@@ -97,6 +103,12 @@ After `/formalize-plan` (and optional `/plan-audit`), if you want one or more ph
 The goal is a **thin pointer**, not a wall of text. The phase doc is the contract: `/formalize-plan` writes it with per-sub-phase pass criteria and an **Autonomy & human-in-the-loop** section that marks where a person is genuinely needed (batched so autonomous stretches stay long) and classifies each pause into one of three gate tiers — **self-serve** (aesthetic/visual checks and the per-sub-phase approval cadence → run the check, log the verdict + screenshot, commit `approval: pending`, continue), **conditional-proceed** (a real decision pre-authorized with a testable rule — "accept the dep if `cargo deny` passes and the license is MIT/Apache, else stop"), and **hard-stop** (the genuinely irreversible or unsettled — git history rewrite, spec edits, a core/upstream fork, a failed pre-authorized condition, an unsettled decision). The human's judgment is spent once, at plan time.
 
 The generated goal then just names the phase, points at its doc, and sets the standing rails: `$start-session` to open, proof-first per the doc, a per-slice `$audit`, close-out via `$end-session`, explicit-paths-only / no `git add -A` / no push, an anti-stall clause so a permission prompt can't freeze the loop, "don't start the next phase," and "stop only for the doc's hard blockers." Because the `"slash goal"` evaluator only judges what's surfaced in the transcript, the doc's proof method must produce transcript-visible evidence. Workflow commands use a `$` prefix (Codex-style), not a slash. The skill returns the goal inline in chat (never a file); you run the command. `/formalize-plan` offers `/slash-goal` as the next step once the Autonomy section is in place.
+
+The goal also points at the phase doc's Delegation section, which says which sub-slices a worker may take.
+
+### Beads mirror (automatic, opt-in per campaign)
+
+When a project has beads and a campaign's phase doc carries `beads_epic`, the session skills keep a silent mirror of the campaign in beads. `/formalize-plan` creates one epic plus one bead per row; `/start-session` reconciles them from git and the doc and claims the next row under a per-session actor; `/checkpoint` notes progress; `/wrap` closes the row's bead with its commit; `/end-session` files follow-ups and closes the epic at approval, then syncs the Dolt data. Commits and the campaign doc stay the truth, so the mirror is always corrected from them. Its jobs are keeping parallel sessions off the same row and letting other people see the work. The user never sees it except through `bd`. `/beads-mirror adopt <phase-doc>` opts in a campaign formalized earlier. Doctrine in `/beads-mirror`.
 
 ### `/start-session`
 
@@ -112,7 +124,7 @@ Lightweight sub-phase close-out — the middle weight between `/checkpoint` and 
 
 ### `/audit`
 
-Quality gate at any point in a session. Three parallel Explore agents (code, spec, test). If `docs/design/spec.md` exists, the spec agent measures against it by section number. Includes phase coherence check (do changes match active phase doc scope) and missing-devlog detection.
+Quality gate at any point in a session. Three parallel scouts (code, spec, test). If `docs/design/spec.md` exists, the spec agent measures against it by section number. Includes phase coherence check (do changes match active phase doc scope) and missing-devlog detection.
 
 Applies safe fixes (small, mechanical), surfaces larger issues for your decision.
 
@@ -121,7 +133,7 @@ Applies safe fixes (small, mechanical), surfaces larger issues for your decision
 Multi-phase wrap-up:
 1. Read context (last devlog, state.md, git status)
 2. Close the devlog (frontmatter `status: complete`, `session_end`, `approval`)
-3. Phase approval check (flip frontmatter, update AGENTS.md and CLAUDE.md Current Status)
+3. Phase approval check (flip frontmatter, update AGENTS.md Current Status)
 4. Update `docs/state.md`
 5. Lessons prompt (any sneaky bugs? → append to `docs/lessons.md`)
 6. Schema audit (validate frontmatter on touched files)
@@ -145,7 +157,7 @@ Find and inspect previous agent session transcripts where supported. Useful when
 The discipline:
 - Every commit is preceded by a closed devlog.
 - Every phase boundary is explicitly marked via frontmatter `approval: approved`.
-- `AGENTS.md` and `CLAUDE.md` Current Status reflect where you actually are (1-3 lines). Detail lives in `docs/state.md`.
+- `AGENTS.md` Current Status reflects where you actually are (1-3 lines); `CLAUDE.md` stays an `@AGENTS.md` import stub. Detail lives in `docs/state.md`.
 - Sneaky bugs go to `docs/lessons.md` so future-you doesn't re-derive them.
 - Significant cross-project patterns get extracted via `/extract-playbook`.
 
@@ -157,7 +169,7 @@ After many sessions, several things drift if untended.
 
 Detail accretes. Known Pitfalls collections grow, Current Status turns into a series of mini-devlogs, individual subsystems get multi-page sections. Past 25,000 characters, session startup slows. Past 40,000, agent context gets crowded.
 
-When `AGENTS.md` or `CLAUDE.md` crosses 25,000 characters, run the slimming workflow. The skill walks every section, classifies each as keep, compress, extract to a knowledge file, extract to lessons.md (for pitfall-shaped content), extract to a new skill, or delete (only when stale or duplicated). Shows the plan before applying. Hard ceiling 40K chars, target 20-25K.
+When `AGENTS.md` crosses 25,000 characters (or a legacy full-content `CLAUDE.md` does), run the slimming workflow. The skill walks every section, classifies each as keep, compress, extract to a knowledge file, extract to lessons.md (for pitfall-shaped content), extract to a new skill, or delete (only when stale or duplicated). Shows the plan before applying. Hard ceiling 40K chars, target 20-25K.
 
 ### Cross-project patterns recur
 
@@ -167,7 +179,7 @@ When you're working in project B and recognize a pattern you already solved in p
 
 ### Playbooks age
 
-Quarterly, run `/audit-playbooks`. Quick mode flags entries past `last_verified` threshold (default 90 days). Deep mode spawns Explore agents to spot-check claims against current library docs. Surfaces what needs refreshing; you decide what to update.
+Quarterly, run `/audit-playbooks`. Quick mode flags entries past `last_verified` threshold (default 90 days). Deep mode spawns one scout per playbook to spot-check claims against current library docs. Surfaces what needs refreshing; you decide what to update.
 
 ## When the workflow shines
 

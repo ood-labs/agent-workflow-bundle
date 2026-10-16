@@ -94,7 +94,7 @@ If you find Current Status quoting devlogs verbatim, the canonical home is the d
 
 ### Step 1: Inventory
 
-1. Read `AGENTS.md` and `CLAUDE.md` when present. Record total character count for each.
+1. Read `AGENTS.md` and `CLAUDE.md` when present. Record total character count for each. **If CLAUDE.md is an `@AGENTS.md` import stub** (first non-comment line is the import), all slimming targets AGENTS.md; leave the stub untouched and never move content into it.
 2. Read `docs/knowledge/INDEX.md` if it exists. List existing knowledge files with their keyword tags.
 3. List existing skills under `.agents/skills/`, `.codex/skills/`, `.claude/skills/`, and the matching global skill homes.
 4. Read `docs/implementation-plan.md` Phase Overview table to know what phases exist.

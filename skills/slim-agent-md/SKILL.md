@@ -6,7 +6,7 @@ user-invocable: true
 
 # Slim Agent Instructions Skill
 
-Use the same workflow as `slim-claude-md`, but treat `AGENTS.md` as the primary cross-agent instruction file and `CLAUDE.md` as the Claude Code compatibility file.
+Use the same workflow as `slim-claude-md`, but treat `AGENTS.md` as the primary cross-agent instruction file. In current projects `CLAUDE.md` is an `@AGENTS.md` import stub — all slimming targets AGENTS.md and the stub is left untouched (it never needs slimming). Only legacy projects still carry full content in CLAUDE.md.
 
 Read `../slim-claude-md/SKILL.md` from this bundle when available. If the installed agent cannot resolve that relative path, follow these rules:
 

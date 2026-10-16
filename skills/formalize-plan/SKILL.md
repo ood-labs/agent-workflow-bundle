@@ -1,7 +1,7 @@
 ---
 name: formalize-plan
 description: Formalize a plan into phase docs and implementation plan
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(git:*), Bash(bd:*)
 user-invocable: true
 ---
 
@@ -18,6 +18,7 @@ DO:
    - Implementation order
    - Verification plan (the proof method / testability contract — how each sub-phase is proven, e.g. tests, MCP readback, capture)
    - **Autonomy & human-in-the-loop** — see below; this is what lets the phase run under `/slash-goal` with minimal intervention
+   - **Delegation** — which sub-slices a worker may take, their allowed files, test command, and retry budget; see below
    - Example agent workflow
    - Dependencies
 
@@ -29,14 +30,23 @@ DO:
 
    A short `/slash-goal` then just points at this doc instead of re-encoding it.
 
+   The **Delegation** section decides what the cheap tier may build (doctrine: `/delegate`). For each sub-slice write: **delegable** or **judge-only**; for a delegable slice, the **allowed files** it may touch, the **test command** that proves its pass criterion, and the **retry budget** (default 2). Default delegable: any slice whose pass criterion is a test or an executing check the worker can run itself. Judge-only: anything touching the spec, instruction files, git, an unsettled decision, or a criterion that needs a human eye. A delegable slice without allowed files and a test command is a plan defect.
+
    **Make the governing spec the acceptance bar, not a citation.** If the phase names a governing spec section, the pass criteria must be at least as strong as that section's requirements — the result will be checked against the phase doc, so the phase doc must not be a weaker bar than the spec. Trace each governing-spec requirement to a criterion that enforces it. Citing §X.Y in the Overview is not the same as verifying against it.
+
+   **Every claim about the codebase is resolved, not remembered.** A plan is read later as fact, so anything in it that is merely plausible becomes a measurement nobody re-checks. Before writing a claim about the existing tree, resolve it this session:
+   - **Name symbols at their resolved version.** Types, ops/node versions, ports, enum values, flags, functions, paths — read them out of the live source or registry. Never copy a version from a fixture or save file: a file written by an older build carries older versions and is not evidence of what is current.
+   - **Cite connections by declared identifier, with the type on both ends** (`clone_grid_v12:source1`, `PortType::Geometry`), never in prose like "the object input." Prose is unverifiable, and an illegal connection described in prose will be built before anyone notices the system refuses it.
+   - **Label every number MEASURED or ASSUMED.** A count, timing, size or population with a receipt, log or dump behind it is MEASURED and cites it. Anything arithmetic over other plan values, or with no source, is ASSUMED — and an ASSUMED value may never be used as a baseline, expected value or pass threshold. Most plan-vs-reality failures are an arithmetic number that got cited as a measurement a day later.
+   - **Search the test registry before specifying any new test, gate or check.** Resolve the project's actual registry (`ctest --show-only=json-v1`, the runner's list command, the CI config) and read candidate sources, not just names. For each new instrument, either name the existing one it extends, imports or parameterises, or state with `file:line` why none can carry the claim. Naming a parent in prose is not reuse. If the tree already holds a family of near-identical copies, factor rather than add the next one.
 
    **Frame foundation/substrate phases honestly.** If a phase delivers only substrate (a data model, an MCP surface, an ID/serialization layer) and nothing a user can see, touch, or run yet, say so plainly in the title and Overview — "Phase 1 of N: durable model only; nothing visible or executable yet" — and name the companion phase that delivers the visible/executing feature. A word like "Model" or "Boundary" in the title must not let "substrate done" be reported later as "feature done."
 3. **Update `docs/implementation-plan.md`**:
    - Add the new phase to the Phase Overview table with link to detailed plan
    - Add/update the phase section in the body (sub-phases table, MCP tools, dependencies, implementation order)
    - Update any "Future Phases" sections that referenced this phase as planned
-4. **Update `AGENTS.md` and `CLAUDE.md`** Current Status sections when those files exist, so Codex and Claude Code see the same active phase
+4. **Update `AGENTS.md`** Current Status when it exists — CLAUDE.md is normally an `@AGENTS.md` import stub, so the one edit reaches both Codex and Claude Code. Never add sections to a stub; update CLAUDE.md too only in legacy projects where it still duplicates full content
+4b. **Mirror into beads, silently**, when the project has `.beads/` and `bd ready` exits 0 (doctrine `/beads-mirror`): create the epic (`--external-ref` = the phase doc path) and one child bead per sub-phase titled `<sub-phase id> <name>`, in implementation order, with the session `--actor`. Add `beads_epic: <epic id>` to the new phase doc's frontmatter, and `bd dolt push` when a remote is configured. Don't mention it in the user-facing output. If beads is absent or unhealthy, skip without comment.
 5. **Commit** all changes with message format: `docs(plan): Phase {N} - {Title}`
 6. **Offer the goal.** After committing, if the phase doc has a complete Autonomy section, offer to run `/slash-goal` to emit a short completion-condition that points at this doc and drives the phase autonomously. (For substantial or multi-week phases, suggest `/plan-audit` first.) Don't auto-run either — just surface the next step.
 
