@@ -110,6 +110,12 @@ The goal also points at the phase doc's Delegation section, which says which sub
 
 When a project has beads and a campaign's phase doc carries `beads_epic`, the session skills keep a silent mirror of the campaign in beads. `/formalize-plan` creates one epic plus one bead per row; `/start-session` reconciles them from git and the doc and claims the next row under a per-session actor; `/checkpoint` notes progress; `/wrap` closes the row's bead with its commit; `/end-session` files follow-ups and closes the epic at approval, then syncs the Dolt data. Commits and the campaign doc stay the truth, so the mirror is always corrected from them. Its jobs are keeping parallel sessions off the same row and letting other people see the work. The user never sees it except through `bd`. `/beads-mirror adopt <phase-doc>` opts in a campaign formalized earlier. Doctrine in `/beads-mirror`.
 
+### Status table (opt-in per project)
+
+A project that runs campaigns on branches in separate folders needs one place that says which campaigns are open and where each stands. Copying whole contracts to `main` at every wrap puts that statement in several files and makes every landing conflict on them. A status table is one small file on `main` instead: one row per campaign that is not closed (`unentered`, `running` or `parked`), with machine, lane branch, tip, last update and next step. The project opts in by committing a file whose frontmatter says `type: status-table` and whose `writer:` field names a tool that changes one row on a fresh `main` without a checkout and pushes it as a fast-forward (VTWO: `docs/active-campaigns.md`, `tools/status_row.py`, gate `docs.active-campaigns`).
+
+With a table, a contract says `status: tracked` and states no status of its own, and the plan points at the table. `/formalize-plan` adds the row, `/start-session` reads it and sets it `running` when a campaign starts, every `/wrap` and `/end-session` updates it after pushing the branch, and a closing landing gives the contract its final status before the row is removed. A lane never edits the table on its branch. While a lane runs, its contract changes on the lane and reaches `main` when the lane lands. Without a table nothing here runs.
+
 ### `/start-session`
 
 Begin a session. The agent reads the last commit, the most recent devlog's `approval` frontmatter (knows immediately whether to start the next phase or resume), `docs/state.md` for current focus, and audits the next planned task for completeness. If anything is unplanned or vague, plan first.

@@ -53,9 +53,9 @@ Devlog is fully closed before continuing.
 If a sub-phase (e.g., 4a, 4b) or full phase was completed this session:
 
 1. Set frontmatter `approval: approved` on the devlog.
-2. Update the phase doc's frontmatter `status:` to `approved`.
+2. Update the phase doc's frontmatter `status:` to `approved`, unless it says `status: tracked`: then the status table carries it (Phase 10, step 6b).
 3. Update the `AGENTS.md` Current Status section to reflect the new active phase / sub-phase. **Never add a Current Status (or any section) to a CLAUDE.md that is an `@AGENTS.md` import stub** — one edit to AGENTS.md reaches both agents. Update CLAUDE.md too only in legacy projects where it still duplicates full content.
-4. If the implementation plan's Phase Overview table tracks status, update the row.
+4. If the implementation plan's Phase Overview table tracks status, update the row. With a status table the plan points at it instead; leave the plan alone.
 
 If we paused mid-sub-phase, leave `approval: pending`. Don't update Current Status to a new phase.
 
@@ -190,7 +190,9 @@ Don't auto-edit. Wait for user direction.
    )"
    ```
 
-6. **Push.** Push your branch if a remote is configured: `git push -u origin <current-branch>`. Never push to `main` from a skill: main moves only by the project's landing step (a fast-forward push of the exact tested commit, where the project policy says so). Verify with `git status` after. With a beads mirror, also run `bd dolt push` when `bd config get sync.remote` names a remote. It moves only the Dolt data ref, runs even when the phase doc forbids code pushes, is silent, and a failure goes in the devlog's `beads:` line.
+6. **Push.** Push your branch if a remote is configured: `git push -u origin <current-branch>`. Never push to `main` from a skill, except the status writer's one-row commit (6b): main moves only by the project's landing step (a fast-forward push of the exact tested commit, where the project policy says so). Verify with `git status` after. With a beads mirror, also run `bd dolt push` when `bd config get sync.remote` names a remote. It moves only the Dolt data ref, runs even when the phase doc forbids code pushes, is silent, and a failure goes in the devlog's `beads:` line.
+
+6b. **Status row.** If the project keeps a status table (`/start-session`, STATUS TABLE), run its writer after the push, as `/wrap` does: `running` with the next sub-phase in `--next`, or `parked` with the reason when the campaign stops for an owner decision or a dependency. At a campaign close the landing gives the contract its final status; then `python <writer> remove <campaign>`. A refusal goes in the final report.
 
 7. Don't `--force`, don't `--amend`. If a hook fails, fix the underlying issue, re-stage, create a NEW commit.
 
